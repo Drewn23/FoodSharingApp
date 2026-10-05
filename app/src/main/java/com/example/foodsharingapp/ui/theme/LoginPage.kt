@@ -42,7 +42,7 @@ fun LoginPage(
         )
         Button(
             onClick = onClickStart,
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color(0xFFAEB8A1),
                 contentColor = Color.Black

@@ -14,7 +14,9 @@ fun AppNav() {
 
     NavHost(navController = nav, startDestination = "Login") {
         composable("Login"){
-
+            LoginPage(
+                onClickStart = { nav.navigate("Menu")}
+            )
         }
         composable("Menu"){
 
