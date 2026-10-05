@@ -1,4 +1,4 @@
-package com.example.foodsharingapp.data
+package com.example.foodsharingapp.ViewModel
 
 import androidx.room3.Entity
 import androidx.room3.ForeignKey
