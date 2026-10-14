@@ -4,19 +4,38 @@ import androidx.room3.Entity
 import androidx.room3.ForeignKey
 import androidx.room3.Index
 import androidx.room3.PrimaryKey
-
+// the entity
 // My own diary record
-@Entity(tableName = "food_data")
+
+// stores location
+@Entity(tableName = "places")
+data class Place(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String,
+    val latitude: Double,
+    val longitude: Double
+)
+
+// mine data
+@Entity(
+    tableName = "food_data",
+    foreignKeys = [ForeignKey(
+        entity = Place::class,
+        parentColumns = ["id"],
+        childColumns = ["placeId"],
+        onDelete = ForeignKey.SET_NULL
+    )],
+    indices = [Index("placeId")]
+    )
 data class MyFoodRecord(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val photo: String,
-    val location: Double,
-    val description: String,
-    val timeDate: String,
-    val tag1: String?,
-    val tag2: String?,
-    val tag3: String?,
-    val ownerId: Long,
+    val description: String = "",
+    val timeDate: Long = System.currentTimeMillis(),
+    val tag1: String? = null,
+    val tag2: String? = null,
+    val tag3: String? = null,
+    val placeId: Long? = null,          // null = no map added
     val isFavorite: Boolean = false
 )
 
@@ -36,26 +55,5 @@ data class MyFoodRecord(
 data class ShareRecord(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val foodId: Long,
-    val shareToken: String,
     val shareAt: Double,
-    val viewCount: Int = 0,
-)
-
-// A saved friend's entry (when you save someone else's diary)
-@Entity(
-    tableName = "saved_data",
-    foreignKeys = [
-        ForeignKey(
-            entity = MyFoodRecord::class,
-            parentColumns = ["id"],
-            childColumns = ["foodId"],
-            onDelete = ForeignKey.CASCADE
-        )
-    ],
-)
-data class SavedFriendData(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val foodId: Long,
-    val userId: Long,
-    val savedAt: Double
 )
