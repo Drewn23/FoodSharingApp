@@ -5,6 +5,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.util.prefs.Preferences
 
+// save logic in repository
+
 class Repository(
     private val diaryDao: Dao,
     private val geocodingApi: GeocodingApi,
