@@ -4,7 +4,9 @@ import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
+import kotlinx.coroutines.flow.Flow
 
 // data access object
 
@@ -13,25 +15,31 @@ import androidx.room.Update
 interface PlaceDao {
     @Query("SELECT * FROM places")
     suspend fun getAllData(): List<Place>
-    @Insert suspend fun insert(place: Place)
-    @Update suspend fun update(place: Place)
-    @Delete suspend fun delete(place: Place)
+    @Insert suspend fun insert(place: Place): Long
 }
 
 @Dao
 interface MyFoodRecordDao {
-    @Query("SELECT * FROM food_data")
-    suspend fun getAllData(): List<MyFoodRecord>
     @Insert suspend fun insert(food: MyFoodRecord)
     @Update suspend fun update(food: MyFoodRecord)
     @Delete suspend fun delete(food: MyFoodRecord)
+
+    @Transaction
+    @Query("SELECT * FROM food_data WHERE id = :id")
+    fun getById(id: Long): Flow<FoodWithPlace?>
+
+    @Transaction
+    @Query(
+        """SELECT * FROM food_data
+           WHERE tag1 LIKE '%' || :tag || '%'
+              OR tag2 LIKE '%' || :tag || '%'
+              OR tag3 LIKE '%' || :tag || '%'
+           ORDER BY timeDate DESC"""
+    )
+    fun searchByTag(tag: String): Flow<List<FoodWithPlace>>
 }
 
 @Dao
 interface ShareRecordDao {
-    @Query("SELECT * FROM shares_data")
-    suspend fun getAllData(): List<ShareRecord>
-    @Insert suspend fun insert(share: ShareRecord)
-    @Update suspend fun update(share: ShareRecord)
-    @Delete suspend fun delete(share: ShareRecord)
+    @Insert suspend fun insert(share: ShareRecord): Long
 }
