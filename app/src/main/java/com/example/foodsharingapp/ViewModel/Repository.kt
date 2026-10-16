@@ -1,11 +1,7 @@
 package com.example.foodsharingapp.ViewModel
 
-import androidx.core.app.OnNewIntentProvider
-import androidx.datastore.core.DataStore
 import androidx.room.withTransaction
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
-import java.util.prefs.Preferences
 
 // save logic in repository
 
@@ -16,7 +12,8 @@ class Repository(private val db: DataDb) {
 
     val allFood: Flow<List<FoodWithPlace>> = foodDao.getAll()
     fun getFood(id: Long): Flow<FoodWithPlace?> = foodDao.getById(id)
-    fun searchFood(tag: String): Flow<List<FoodWithPlace>> = foodDao.searchByTag(cleanTag(tag))
+    fun searchByTag(tag: String): Flow<List<FoodWithPlace>> =
+        foodDao.searchByTag(cleanTag(tag))
 
     suspend fun saveFood(
         photo: String,
@@ -43,9 +40,14 @@ class Repository(private val db: DataDb) {
         photo: String,
         description: String,
         tags: List<String>,
-        newplace: Place?
+        newPlace: Place?,
+        clearPlace: Boolean = false
     ) = db.withTransaction {
-        val placeId = newplace?.let { placeDao.insert(it) } ?: existing.placeId
+        val placeId = when {
+            clearPlace -> null
+            newPlace != null -> placeDao.insert(newPlace)
+            else -> existing.placeId
+        }
         val t = cleanTags(tags)
         foodDao.update(
             existing.copy(
@@ -57,9 +59,13 @@ class Repository(private val db: DataDb) {
                 placeId = placeId
             )
         )
+        placeDao.deleteOrphans()
     }
 
-    suspend fun deleteFood(food: MyFoodRecord) = foodDao.delete(food)
+    suspend fun deleteFood(food: MyFoodRecord) = db.withTransaction {
+        foodDao.delete(food)
+        placeDao.deleteOrphans()
+    }
     suspend fun deleteShare(share: ShareRecord) = shareDao.delete(share)
     suspend fun setFavorite(food: MyFoodRecord, favorite: Boolean) =
         foodDao.update(food.copy(isFavorite = favorite))

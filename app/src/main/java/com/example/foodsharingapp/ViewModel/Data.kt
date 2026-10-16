@@ -1,11 +1,10 @@
 package com.example.foodsharingapp.ViewModel
 
-import androidx.room3.Entity
-import androidx.room3.ForeignKey
-import androidx.room3.Index
-import androidx.room3.PrimaryKey
+import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.Index
+import androidx.room.PrimaryKey
 // the entity
-// My own diary record
 
 // stores location
 @Entity(tableName = "places")
@@ -16,7 +15,7 @@ data class Place(
     val longitude: Double
 )
 
-// mine data
+// My own diary record
 @Entity(
     tableName = "food_data",
     foreignKeys = [ForeignKey(
@@ -55,5 +54,5 @@ data class MyFoodRecord(
 data class ShareRecord(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val foodId: Long,
-    val shareAt: Double,
+    val shareAt: Long = System.currentTimeMillis()
 )

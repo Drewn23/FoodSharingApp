@@ -13,6 +13,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface PlaceDao {
+    @Query("DELETE FROM places WHERE id NOT IN (SELECT placeId FROM food_data WHERE placeId IS NOT NULL)")
+    suspend fun deleteOrphans()
+
     @Query("SELECT * FROM places")
     suspend fun getAllData(): List<Place>
     @Insert suspend fun insert(place: Place): Long
@@ -20,9 +23,13 @@ interface PlaceDao {
 
 @Dao
 interface MyFoodRecordDao {
-    @Insert suspend fun insert(food: MyFoodRecord)
+    @Insert suspend fun insert(food: MyFoodRecord): Long
     @Update suspend fun update(food: MyFoodRecord)
     @Delete suspend fun delete(food: MyFoodRecord)
+
+    @Transaction
+    @Query("SELECT * FROM food_data ORDER BY timeDate DESC")
+    fun getAll(): Flow<List<FoodWithPlace>>
 
     @Transaction
     @Query("SELECT * FROM food_data WHERE id = :id")
@@ -31,10 +38,8 @@ interface MyFoodRecordDao {
     @Transaction
     @Query(
         """SELECT * FROM food_data
-           WHERE tag1 LIKE '%' || :tag || '%'
-              OR tag2 LIKE '%' || :tag || '%'
-              OR tag3 LIKE '%' || :tag || '%'
-           ORDER BY timeDate DESC"""
+       WHERE tag1 = :tag OR tag2 = :tag OR tag3 = :tag
+       ORDER BY timeDate DESC"""
     )
     fun searchByTag(tag: String): Flow<List<FoodWithPlace>>
 }
@@ -42,4 +47,5 @@ interface MyFoodRecordDao {
 @Dao
 interface ShareRecordDao {
     @Insert suspend fun insert(share: ShareRecord): Long
+    @Delete suspend fun delete(share: ShareRecord)
 }

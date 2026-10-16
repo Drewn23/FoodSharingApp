@@ -5,11 +5,15 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [Place::class, MyFoodRecord::class, ShareRecord::class], version = 1)
+@Database(
+    entities = [Place::class, MyFoodRecord::class, ShareRecord::class],
+    version = 1,
+    exportSchema = false
+)
 abstract class DataDb : RoomDatabase() {
     abstract fun placeDao(): PlaceDao
-    abstract fun myFoodRecordDao(): MyFoodRecordDao
-    abstract fun shareRecordDao(): ShareRecordDao
+    abstract fun foodDao(): MyFoodRecordDao
+    abstract fun shareDao(): ShareRecordDao
 
     companion object {
         @Volatile private var instance: DataDb? = null
