@@ -18,8 +18,11 @@ fun AppNav() {
                 onClickStart = { nav.navigate("Menu")}
             )
         }
-        composable("Menu"){
-
+        composable("Menu") {
+            AppMenu(
+                onSettingsClick = { nav.navigate("Settings") },
+                onLogoutClick = { nav.navigate("Login") }
+            )
         }
         composable("Settings"){
 

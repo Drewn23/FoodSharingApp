@@ -45,7 +45,6 @@ fun AppMenu (
     modifier: Modifier = Modifier,
     onSettingsClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {},
-    onCloseClick: () -> Unit = {}
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -86,6 +85,7 @@ fun AppMenu (
                         label = { Text("Settings") },
                         selected = false,
                         onClick = {
+                            //Close drawer to prevent navigation drawer from closing when clicking on settings
                             scope.launch { drawerState.close() }
                             onSettingsClick()
                         },
@@ -98,6 +98,7 @@ fun AppMenu (
                         label = { Text("Logout") },
                         selected = false,
                         onClick = {
+                            //Close drawer to prevent navigation drawer from closing when clicking on logout
                             scope.launch { drawerState.close() }
                             onLogoutClick()
                         },
