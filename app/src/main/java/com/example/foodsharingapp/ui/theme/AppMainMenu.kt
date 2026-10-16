@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -69,30 +70,40 @@ fun AppMenu (
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet {
-                // Header with Title and "X" close icon button
-                DrawerLine(
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                    }
-                )
+                Column(
+                    modifier = Modifier.fillMaxHeight()
+                ) {
+                    // Header with Title and "X" close icon button
+                    DrawerLine(
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                        }
+                    )
 
-                NavigationDrawerItem(
-                    label = { Text("Settings") },
-                    selected = false,
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                        onSettingsClick()
-                    }
-                )
-                Spacer(modifier = Modifier.fillMaxWidth(1f))
-                NavigationDrawerItem(
-                    label = { Text("Logout") },
-                    selected = false,
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                        onLogoutClick()
-                    }
-                )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    NavigationDrawerItem(
+                        label = { Text("Settings") },
+                        selected = false,
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            onSettingsClick()
+                        },
+                        modifier = Modifier.padding(horizontal = 12.dp)
+                    )
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    NavigationDrawerItem(
+                        label = { Text("Logout") },
+                        selected = false,
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            onLogoutClick()
+                        },
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp)
+                    )
+                }
             }
         }
     ) {
