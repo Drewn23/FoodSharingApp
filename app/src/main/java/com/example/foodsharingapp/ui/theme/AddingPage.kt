@@ -1,7 +1,12 @@
 package com.example.foodsharingapp.ui.theme
 
+import android.Manifest
 import android.app.Activity
 import android.content.pm.ActivityInfo
+import android.graphics.Bitmap
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -43,8 +48,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.example.foodsharingapp.data.Place
+import java.io.File
+import java.io.FileOutputStream
 
 val CyanButtonColor = Color(0xFF78D6DF)
+
+private fun saveBitmapToCache(context: android.content.Context, bitmap: Bitmap): String {
+    val file = File(context.cacheDir, "camera_photo_${System.currentTimeMillis()}.jpg")
+    val out = FileOutputStream(file)
+    bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+    out.flush()
+    out.close()
+    return Uri.fromFile(file).toString()
+}
 
 @Preview(showBackground = true)
 @Composable
@@ -57,7 +73,7 @@ fun AddingPage(
     onSaveClick: (photo: String, description: String, tags: List<String>, place: Place?) -> Unit = { _, _, _, _ -> },
     onCancelClick: () -> Unit = {}
 ) {
-    //Lock the screen rotation at "portrait"
+    //Lock the screen rotation at "portrait" for AddingPage only
     val context = LocalContext.current
     DisposableEffect(Unit) {
         val activity = context as? Activity
@@ -74,6 +90,40 @@ fun AddingPage(
     var showPhotoDialog by remember { mutableStateOf(false) }
     var showTagDialog by remember { mutableStateOf(false) }
     var showMapDialog by remember { mutableStateOf(false) }
+
+    // Launchers for gallery and camera
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    it,
+                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch (_: Exception) {}
+            photo = it.toString()
+            showPhotoDialog = false
+        }
+    }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap: Bitmap? ->
+        bitmap?.let {
+            val uriStr = saveBitmapToCache(context, it)
+            photo = uriStr
+            showPhotoDialog = false
+        }
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            cameraLauncher.launch(null)
+        }
+    }
 
     val parsedTags = remember(tagsInput) {
         tagsInput.split(",")
@@ -248,22 +298,40 @@ fun AddingPage(
         Spacer(modifier = Modifier.height(16.dp))
     }
 
-    // Dialogs for user input, camera and map are temporary before app permission take from gallery and map is taken from google map
+    // Dialogs for user input, camera and map
     if (showPhotoDialog) {
         var tempPhoto by remember { mutableStateOf(photo) }
         AlertDialog(
             onDismissRequest = { showPhotoDialog = false },
             title = { Text("Insert Picture") },
             text = {
-                OutlinedTextField(
-                    value = tempPhoto,
-                    onValueChange = { tempPhoto = it },
-                    placeholder = { Text("Enter photo name or URI (e.g. food.jpg)") }
-                )
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Button(
+                        onClick = { galleryLauncher.launch("image/*") },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = CyanButtonColor, contentColor = Color.Black)
+                    ) {
+                        Text("Pick from Gallery")
+                    }
+
+                    Button(
+                        onClick = {
+                            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = CyanButtonColor, contentColor = Color.Black)
+                    ) {
+                        Text("Take Photo (Camera)")
+                    }
+                }
             },
             confirmButton = {
                 TextButton(onClick = {
-                    photo = tempPhoto
+                    if (tempPhoto.isNotBlank()) {
+                        photo = tempPhoto
+                    }
                     showPhotoDialog = false
                 }) {
                     Text("OK")
