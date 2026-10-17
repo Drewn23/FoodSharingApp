@@ -7,10 +7,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import com.example.foodsharingapp.ViewModel.HomeViewModel
+import com.example.foodsharingapp.data.FoodWithPlace
+import com.example.foodsharingapp.data.Place
 import com.example.foodsharingapp.data.SettingsRepository
 import kotlinx.coroutines.launch
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -26,7 +28,15 @@ object Settings
 object AddingState
 
 @Serializable
-object EditingState
+data class EditingState(
+    val foodId: Long,
+    val photo: String,
+    val description: String,
+    val tag1: String = "",
+    val tag2: String = "",
+    val tag3: String = "",
+    val placeName: String = ""
+)
 
 @Composable
 fun AppNav(
@@ -43,9 +53,9 @@ fun AppNav(
     val mapOn by settingsRepo.mapOn.collectAsState(initial = true)
 
     NavHost(navController = nav, startDestination = Login) {
-        composable<Login>{
+        composable<Login> {
             LoginPage(
-                onClickStart = { nav.navigate(Menu)}
+                onClickStart = { nav.navigate(Menu) }
             )
         }
         composable<Menu> {
@@ -55,19 +65,32 @@ fun AppNav(
                 onSearchChange = homeVm::onSearchChange,
                 onSettingsClick = { nav.navigate(Settings) },
                 onLogoutClick = { nav.navigate(Login) },
-                onAddClick = { nav.navigate(AddingState) }
+                onAddClick = { nav.navigate(AddingState) },
+                onItemClick = { item ->
+                    nav.navigate(
+                        EditingState(
+                            foodId = item.food.id,
+                            photo = item.food.photo,
+                            description = item.food.description,
+                            tag1 = item.food.tag1 ?: "",
+                            tag2 = item.food.tag2 ?: "",
+                            tag3 = item.food.tag3 ?: "",
+                            placeName = item.place?.name ?: ""
+                        )
+                    )
+                }
             )
         }
-        composable<Settings>{
+        composable<Settings> {
             AppSetting(
-                onCloseClick = { nav.navigate(Menu)},
+                onCloseClick = { nav.navigate(Menu) },
                 cameraOn = cameraOn,
                 mapOn = mapOn,
                 onCameraToggle = { enabled -> scope.launch { settingsRepo.setCameraOn(enabled) } },
                 onMapToggle = { enabled -> scope.launch { settingsRepo.setMapOn(enabled) } }
             )
         }
-        composable<AddingState>{
+        composable<AddingState> {
             AddingPage(
                 onSaveClick = { photo, description, tags, place ->
                     homeVm.saveFood(photo, description, tags, place)
@@ -76,8 +99,32 @@ fun AppNav(
                 onCancelClick = { nav.navigate(Menu) }
             )
         }
-        composable<EditingState>{
+        composable<EditingState> { backStackEntry ->
+            val args = backStackEntry.toRoute<EditingState>()
+            val initialTags = listOfNotNull(args.tag1, args.tag2, args.tag3).filter { it.isNotBlank() }
+            val initialPlace = if (args.placeName.isNotBlank()) Place(name = args.placeName, latitude = 0.0, longitude = 0.0) else null
 
+            val existingItem = foods.find { it.food.id == args.foodId }
+
+            EdittingPage(
+                initialPhoto = args.photo,
+                initialDescription = args.description,
+                initialTags = initialTags,
+                initialPlace = initialPlace,
+                onSaveClick = { photo, description, tags, place ->
+                    if (existingItem != null) {
+                        homeVm.updateFood(existingItem.food, photo, description, tags, place)
+                    }
+                    nav.navigate(Menu)
+                },
+                onDeleteClick = {
+                    if (existingItem != null) {
+                        homeVm.delete(existingItem)
+                    }
+                    nav.navigate(Menu)
+                },
+                onCancelClick = { nav.navigate(Menu) }
+            )
         }
     }
 }

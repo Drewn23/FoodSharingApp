@@ -1,6 +1,7 @@
 package com.example.foodsharingapp.ui.theme
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -64,7 +65,8 @@ fun AppMenu(
     onSearchChange: (String) -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {},
-    onAddClick: () -> Unit = {}
+    onAddClick: () -> Unit = {},
+    onItemClick: (FoodWithPlace) -> Unit = {}
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -100,7 +102,8 @@ fun AppMenu(
                 AppMenuContent(
                     foods = foods,
                     searchQuery = searchQuery,
-                    onSearchChange = onSearchChange
+                    onSearchChange = onSearchChange,
+                    onItemClick = onItemClick
                 )
             }
 
@@ -159,7 +162,8 @@ fun AppMenuContent(
     modifier: Modifier = Modifier,
     foods: List<FoodWithPlace>,
     searchQuery: String,
-    onSearchChange: (String) -> Unit
+    onSearchChange: (String) -> Unit,
+    onItemClick: (FoodWithPlace) -> Unit
 ) {
     Column(
         modifier = modifier.fillMaxSize()
@@ -185,7 +189,10 @@ fun AppMenuContent(
                 }
             } else {
                 items(foods) { item ->
-                    FoodItemCard(item = item)
+                    FoodItemCard(
+                        item = item,
+                        onItemClick = { onItemClick(item) }
+                    )
                 }
             }
         }
@@ -217,12 +224,14 @@ fun EmptyFoodState() {
 fun FoodItemCard(
     modifier: Modifier = Modifier,
     item: FoodWithPlace,
+    onItemClick: () -> Unit = {},
     onShareClick: () -> Unit = {}
 ) {
     Box(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clickable(onClick = onItemClick)
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
