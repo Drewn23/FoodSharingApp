@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -63,22 +62,18 @@ fun LoginPage(
 fun LoginCard(){
     Card{
         Text(
-            "Food Sharing\nPlanner",
+            text = "Food Sharing\nPlanner",
+            fontSize = 32.sp,
+            lineHeight = 40.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White,
+            textAlign = TextAlign.Center,
             modifier = Modifier
                 .background(color = Color(0xFF545454))
                 .padding(
                     horizontal = 32.dp,
                     vertical = 24.dp
-                    ),
-            autoSize = TextAutoSize.StepBased(
-                minFontSize = 12.sp,
-                maxFontSize = 48.sp,
-                stepSize = 1.sp
-            ),
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-            textAlign = TextAlign.Center
-
+                )
         )
     }
 }
