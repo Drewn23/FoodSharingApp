@@ -54,7 +54,8 @@ fun AppNav(
                 searchQuery = searchQuery,
                 onSearchChange = homeVm::onSearchChange,
                 onSettingsClick = { nav.navigate(Settings) },
-                onLogoutClick = { nav.navigate(Login) }
+                onLogoutClick = { nav.navigate(Login) },
+                onAddClick = { nav.navigate(AddingState) }
             )
         }
         composable<Settings>{
@@ -67,7 +68,13 @@ fun AppNav(
             )
         }
         composable<AddingState>{
-
+            AddingPage(
+                onSaveClick = { photo, description, tags, place ->
+                    homeVm.saveFood(photo, description, tags, place)
+                    nav.navigate(Menu)
+                },
+                onCancelClick = { nav.navigate(Menu) }
+            )
         }
         composable<EditingState>{
 

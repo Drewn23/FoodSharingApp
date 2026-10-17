@@ -36,7 +36,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
-
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.ui.text.font.FontWeight
 import com.example.foodsharingapp.data.FoodWithPlace
 
@@ -49,6 +50,7 @@ fun AppMenu (
     onSearchChange: (String) -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {},
+    onAddClick: () -> Unit = {}
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -96,77 +98,83 @@ fun AppMenu (
             }
         }
     ) {
-        Column(
-            modifier = modifier.fillMaxSize()
-        ) {
-            HeaderLine(
-                onMenuClick = {
-                    scope.launch {
-                        if (drawerState.isClosed) {
-                            drawerState.open()
-                        } else {
-                            drawerState.close()
-                        }
-                    }
-                }
-            )
-
-            // Search tag @ bar
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = onSearchChange,
-                placeholder = { Text("Search @tag...") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                singleLine = true
-            )
-
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
+        Box(modifier = modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier.fillMaxSize()
             ) {
-                if (foods.isEmpty()) {
-                    item {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp)
-                        ) {
-                            Text(
-                                text = "Nothing yet",
-                                textAlign = TextAlign.Center
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "Try adding something",
-                                textAlign = TextAlign.Center,
-                                color = Color.Gray
-                            )
+                HeaderLine(
+                    onMenuClick = {
+                        scope.launch {
+                            if (drawerState.isClosed) {
+                                drawerState.open()
+                            } else {
+                                drawerState.close()
+                            }
                         }
                     }
-                } else {
-                    items(foods) { item ->
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                        ) {
-                            Column {
+                )
+
+                // Search tag @ bar
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = onSearchChange,
+                    placeholder = {
+                        Text("Search @tag...")
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    singleLine = true
+                )
+
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                ) {
+                    if (foods.isEmpty()) {
+                        item {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(32.dp)
+                            ) {
                                 Text(
-                                    text = item.food.description.ifEmpty { "Food Entry #${item.food.id}" },
-                                    fontWeight = FontWeight.Bold
+                                    text = "Nothing yet",
+                                    textAlign = TextAlign.Center
                                 )
-                                val tags = listOfNotNull(item.food.tag1, item.food.tag2, item.food.tag3)
-                                    .filter { it.isNotEmpty() }
-                                    .joinToString(" ") { "#$it" }
-                                if (tags.isNotEmpty()) {
-                                    Text(text = tags, color = Color.Gray)
-                                }
-                                item.place?.let { place ->
-                                    Text(text = "📍 ${place.name}", color = Color.DarkGray)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Try adding something",
+                                    textAlign = TextAlign.Center,
+                                    color = Color.Gray
+                                )
+                            }
+                        }
+                    } else {
+                        //Should be able to show all foods with tags and images
+                        //Scrollable
+                        items(foods) { item ->
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                            ) {
+                                Column {
+                                    Text(
+                                        text = item.food.description.ifEmpty { "Food Entry #${item.food.id}" },
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    val tags = listOfNotNull(item.food.tag1, item.food.tag2, item.food.tag3)
+                                        .filter { it.isNotEmpty() }
+                                        .joinToString(" ") { "#$it" }
+                                    if (tags.isNotEmpty()) {
+                                        Text(text = tags, color = Color.Gray)
+                                    }
+                                    item.place?.let { place ->
+                                        Text(text = "📍 ${place.name}", color = Color.DarkGray)
+                                    }
                                 }
                             }
                         }
@@ -174,6 +182,19 @@ fun AppMenu (
                 }
             }
 
+            FloatingActionButton(
+                onClick = onAddClick,
+                containerColor = Color.Yellow,
+                contentColor = Color.Black,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(24.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Add Food"
+                )
+            }
         }
     }
 }
@@ -198,7 +219,8 @@ fun HeaderLine (
         )
 
         IconButton(
-            onClick = onMenuClick
+            onClick = onMenuClick,
+            modifier = Modifier.align(Alignment.TopStart)
         ) {
             Icon(
                 imageVector = Icons.Default.Menu,
@@ -206,7 +228,6 @@ fun HeaderLine (
                 tint = Color.Black
             )
         }
-
     }
 }
 

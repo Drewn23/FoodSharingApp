@@ -1,0 +1,335 @@
+package com.example.foodsharingapp.ui.theme
+
+import android.app.Activity
+import android.content.pm.ActivityInfo
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
+import com.example.foodsharingapp.data.Place
+
+val CyanButtonColor = Color(0xFF78D6DF)
+
+@Preview(showBackground = true)
+@Composable
+//Must not be rotatable
+fun AddingPage(
+    initialPhoto: String = "",
+    initialDescription: String = "",
+    initialTags: List<String> = emptyList(),
+    initialPlace: Place? = null,
+    onSaveClick: (photo: String, description: String, tags: List<String>, place: Place?) -> Unit = { _, _, _, _ -> },
+    onCancelClick: () -> Unit = {}
+) {
+    //Lock the screen rotation at "portrait"
+    val context = LocalContext.current
+    DisposableEffect(Unit) {
+        val activity = context as? Activity
+        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        onDispose {
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
+    }
+
+    var photo by remember { mutableStateOf(initialPhoto) }
+    var description by remember { mutableStateOf(initialDescription) }
+    var tagsInput by remember { mutableStateOf(initialTags.joinToString(", ")) }
+    var placeName by remember { mutableStateOf(initialPlace?.name ?: "") }
+    var showPhotoDialog by remember { mutableStateOf(false) }
+    var showTagDialog by remember { mutableStateOf(false) }
+    var showMapDialog by remember { mutableStateOf(false) }
+
+    val parsedTags = remember(tagsInput) {
+        tagsInput.split(",")
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+    }
+
+    val currentPlace = remember(placeName) {
+        if (placeName.isNotBlank()) Place(name = placeName, latitude = 0.0, longitude = 0.0) else null
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Top Right Save Button
+        // Become clickable when a picture is selected, that way errorMessage is not required
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.TopEnd
+        ) {
+            Text(
+                text = "Save",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Medium,
+                color = if (photo.isNotBlank()) Color.Black else Color.Gray,
+                modifier = Modifier
+                    .clickable(enabled = photo.isNotBlank()) {
+                        onSaveClick(photo, description, parsedTags, currentPlace)
+                    }
+                    .padding(8.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Large Box: Click to save a picture
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(240.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .background(CyanButtonColor)
+                .clickable { showPhotoDialog = true },
+            contentAlignment = Alignment.Center
+        ) {
+            if (photo.isBlank()) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "Click to save a picture",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Normal,
+                        color = Color.Black
+                    )
+                }
+            } else {
+                // Must be able to show the either picture that is saved in gallery
+                AsyncImage(
+                    model = photo,
+                    contentDescription = "Selected Picture",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Middle Row: Add tag & Add map buttons
+        //Must be inline with Picture box
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            // Add tag button, take 0.5f empty space
+            Box(
+                modifier = Modifier
+                    .size(width = 110.dp, height = 70.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(CyanButtonColor)
+                    .clickable { showTagDialog = true }
+                    .weight(0.5f),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = if (parsedTags.isEmpty()) "Add tag" else "Tags:\n${parsedTags.take(2).joinToString()}",
+                    fontSize = 16.sp,
+                    textAlign = TextAlign.Center,
+                    color = Color.Black,
+                    modifier = Modifier.padding(4.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Add map button must take up 0.5f of space
+            Box(
+                modifier = Modifier
+                    .size(width = 110.dp, height = 70.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(CyanButtonColor)
+                    .clickable { showMapDialog = true }
+                    .weight(0.5f),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = if (placeName.isBlank()) "Add\nmap" else "Location:\n$placeName",
+                    fontSize = 16.sp,
+                    textAlign = TextAlign.Center,
+                    color = Color.Black,
+                    modifier = Modifier.padding(4.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Description Box must display "Description" as text before when entering Show what is enetered instead
+        OutlinedTextField(
+            value = description,
+            onValueChange = { description = it },
+            placeholder = {
+                Text(
+                    text = "Description",
+                    fontSize = 18.sp,
+                    color = Color.Black.copy(alpha = 0.7f),
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+            },
+            textStyle = TextStyle(
+                fontSize = 18.sp,
+                textAlign = TextAlign.Center,
+                color = Color.Black
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(110.dp)
+                .clip(RoundedCornerShape(20.dp))
+                .background(CyanButtonColor),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color.Transparent,
+                unfocusedBorderColor = Color.Transparent
+            )
+        )
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        // Cancel Button at bottom
+        Button(
+            onClick = onCancelClick,
+            shape = RoundedCornerShape(20.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = CyanButtonColor,
+                contentColor = Color.Black
+            ),
+            modifier = Modifier
+                .width(180.dp)
+                .height(50.dp)
+        ) {
+            Text(
+                text = "Cancel",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+
+    // Dialogs for user input, camera and map are temporary before app permission take from gallery and map is taken from google map
+    if (showPhotoDialog) {
+        var tempPhoto by remember { mutableStateOf(photo) }
+        AlertDialog(
+            onDismissRequest = { showPhotoDialog = false },
+            title = { Text("Insert Picture") },
+            text = {
+                OutlinedTextField(
+                    value = tempPhoto,
+                    onValueChange = { tempPhoto = it },
+                    placeholder = { Text("Enter photo name or URI (e.g. food.jpg)") }
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    photo = tempPhoto
+                    showPhotoDialog = false
+                }) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPhotoDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showTagDialog) {
+        var tempTags by remember { mutableStateOf(tagsInput) }
+        AlertDialog(
+            onDismissRequest = { showTagDialog = false },
+            title = { Text("Add Tags") },
+            text = {
+                OutlinedTextField(
+                    value = tempTags,
+                    onValueChange = { tempTags = it },
+                    placeholder = { Text("Enter tags separated by comma (e.g. @Breakfast, @Yum)") }
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    tagsInput = tempTags
+                    showTagDialog = false
+                }) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTagDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showMapDialog) {
+        var tempPlace by remember { mutableStateOf(placeName) }
+        AlertDialog(
+            onDismissRequest = { showMapDialog = false },
+            title = { Text("Add Map Location") },
+            text = {
+                OutlinedTextField(
+                    value = tempPlace,
+                    onValueChange = { tempPlace = it },
+                    placeholder = { Text("Enter location name (e.g. Central Mall)") }
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    placeName = tempPlace
+                    showMapDialog = false
+                }) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showMapDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+}
