@@ -25,7 +25,7 @@ fun AppNav() {
             )
         }
         composable("Settings"){
-
+            AppSetting(onCloseClick = { nav.navigate("Menu")})
         }
         composable("AddingState"){
 

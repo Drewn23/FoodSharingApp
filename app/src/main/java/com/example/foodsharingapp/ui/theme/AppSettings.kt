@@ -37,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -45,7 +46,7 @@ import org.intellij.lang.annotations.JdkConstants
 @Preview
 @Composable
 fun AppSetting(
-    onClick: () -> Unit = {},
+    onCloseClick: () -> Unit = {},
     modifier: Modifier = Modifier,
     Version: String = "Version 1.0.0"
 ) {
@@ -57,7 +58,7 @@ fun AppSetting(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ){
         SettingHeader(
-            onClick = onClick
+            onClick = onCloseClick
         )
         ThemeSetting()
         CameraSetting()
@@ -77,7 +78,7 @@ fun SettingHeader (
             .fillMaxWidth()
             .height(50.dp)
     ) {
-        Text("Settings")
+
         // Yellow header line
         HorizontalDivider(
             modifier = Modifier
@@ -86,7 +87,11 @@ fun SettingHeader (
             thickness = 50.dp,
             color = Color.Yellow
         )
-
+        Text("Settings",
+            textAlign = TextAlign.Center,
+            fontSize = 24.sp,
+            modifier = Modifier.align(Alignment.Center)
+        )
         IconButton(
             onClick = onClick
         ) {
