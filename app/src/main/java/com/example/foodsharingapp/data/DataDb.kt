@@ -1,4 +1,4 @@
-package com.example.foodsharingapp.ViewModel
+package com.example.foodsharingapp.data
 
 import android.content.Context
 import androidx.room.Database

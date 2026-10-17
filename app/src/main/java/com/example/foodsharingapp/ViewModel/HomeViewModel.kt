@@ -2,6 +2,8 @@ package com.example.foodsharingapp.ViewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.foodsharingapp.data.FoodWithPlace
+import com.example.foodsharingapp.data.Repository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted

@@ -2,6 +2,7 @@ package com.example.foodsharingapp.ViewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.example.foodsharingapp.data.Repository
 
 class ViewModelFactory(private val repo: Repository) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
