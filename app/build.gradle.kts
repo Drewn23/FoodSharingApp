@@ -4,7 +4,7 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
-val roomVersion = "2.6.1"
+val roomVersion = "2.8.5"
 
 android {
     namespace = "com.example.foodsharingapp"

@@ -11,37 +11,31 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.foodsharingapp.ViewModel.DataDb
+import com.example.foodsharingapp.ViewModel.HomeViewModel
+import com.example.foodsharingapp.ViewModel.Repository
+import com.example.foodsharingapp.ViewModel.TestScreen
+import com.example.foodsharingapp.ViewModel.ViewModelFactory
 import com.example.foodsharingapp.ui.theme.FoodSharingAppTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // build the database and the repo
+        val db = DataDb.get(applicationContext)
+        val repo = Repository(db)
+
         setContent {
             FoodSharingAppTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Testing",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+                // viewmodel, using factory
+                val homeVm: HomeViewModel = viewModel(factory = ViewModelFactory(repo))
+
+                // Show the screen
+                TestScreen(homeVm)
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    FoodSharingAppTheme {
-        Greeting("hiii")
     }
 }
