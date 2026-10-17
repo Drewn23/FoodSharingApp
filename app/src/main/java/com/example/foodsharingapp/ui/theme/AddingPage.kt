@@ -206,7 +206,7 @@ fun AddingPage(
             // Add tag button, take 0.5f empty space
             Box(
                 modifier = Modifier
-                    .size(width = 110.dp, height = 70.dp)
+                    .size(width = 110.dp, height = 120.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(CyanButtonColor)
                     .clickable { showTagDialog = true }
@@ -226,7 +226,7 @@ fun AddingPage(
             // Add map button must take up 0.5f of space
             Box(
                 modifier = Modifier
-                    .size(width = 110.dp, height = 70.dp)
+                    .size(width = 110.dp, height = 120.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(CyanButtonColor)
                     .clickable { showMapDialog = true }
@@ -245,7 +245,7 @@ fun AddingPage(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Description Box must display "Description" as text before when entering Show what is enetered instead
+        // Description Box must display "Description" as text before when entering Show what is entered instead
         OutlinedTextField(
             value = description,
             onValueChange = { description = it },

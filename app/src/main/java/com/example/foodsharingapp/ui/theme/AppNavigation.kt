@@ -106,7 +106,7 @@ fun AppNav(
 
             val existingItem = foods.find { it.food.id == args.foodId }
 
-            EdittingPage(
+            EditingPage(
                 initialPhoto = args.photo,
                 initialDescription = args.description,
                 initialTags = initialTags,

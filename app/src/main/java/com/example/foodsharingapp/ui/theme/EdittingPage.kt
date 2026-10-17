@@ -51,7 +51,7 @@ import com.example.foodsharingapp.data.Place
 import java.io.File
 import java.io.FileOutputStream
 
-private fun saveBitmapToCacheEditting(context: android.content.Context, bitmap: Bitmap): String {
+private fun saveBitmapToCacheEditing(context: android.content.Context, bitmap: Bitmap): String {
     val file = File(context.cacheDir, "camera_photo_edit_${System.currentTimeMillis()}.jpg")
     val out = FileOutputStream(file)
     bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
@@ -62,7 +62,7 @@ private fun saveBitmapToCacheEditting(context: android.content.Context, bitmap: 
 
 @Preview(showBackground = true)
 @Composable
-fun EdittingPage(
+fun EditingPage(
     initialPhoto: String = "",
     initialDescription: String = "",
     initialTags: List<String> = emptyList(),
@@ -110,7 +110,7 @@ fun EdittingPage(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap: Bitmap? ->
         bitmap?.let {
-            val uriStr = saveBitmapToCacheEditting(context, it)
+            val uriStr = saveBitmapToCacheEditing(context, it)
             photo = uriStr
             showPhotoDialog = false
         }
@@ -199,7 +199,7 @@ fun EdittingPage(
         ) {
             Box(
                 modifier = Modifier
-                    .size(width = 110.dp, height = 70.dp)
+                    .size(width = 110.dp, height = 120.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(CyanButtonColor)
                     .clickable { showTagDialog = true }
@@ -218,7 +218,7 @@ fun EdittingPage(
 
             Box(
                 modifier = Modifier
-                    .size(width = 110.dp, height = 70.dp)
+                    .size(width = 110.dp, height = 120.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(CyanButtonColor)
                     .clickable { showMapDialog = true }
