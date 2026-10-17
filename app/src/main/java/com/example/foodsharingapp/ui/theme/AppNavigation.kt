@@ -4,7 +4,23 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
 
+@Serializable
+object Login
+
+@Serializable
+object Menu
+
+@Serializable
+object Settings
+
+@Serializable
+object AddingState
+
+@Serializable
+object EditingState
 
 @Composable
 fun AppNav() {
@@ -12,25 +28,25 @@ fun AppNav() {
 
     //val vm: viewModel(add the view model file) = viewModel() "add the class"
 
-    NavHost(navController = nav, startDestination = "Login") {
-        composable("Login"){
+    NavHost(navController = nav, startDestination = Login) {
+        composable<Login>{
             LoginPage(
-                onClickStart = { nav.navigate("Menu")}
+                onClickStart = { nav.navigate(Menu)}
             )
         }
-        composable("Menu") {
+        composable<Menu> {
             AppMenu(
-                onSettingsClick = { nav.navigate("Settings") },
-                onLogoutClick = { nav.navigate("Login") }
+                onSettingsClick = { nav.navigate(Settings) },
+                onLogoutClick = { nav.navigate(Login) }
             )
         }
-        composable("Settings"){
-            AppSetting(onCloseClick = { nav.navigate("Menu")})
+        composable<Settings>{
+            AppSetting(onCloseClick = { nav.navigate(Menu)})
         }
-        composable("AddingState"){
+        composable<AddingState>{
 
         }
-        composable("EditingState"){
+        composable<EditingState>{
 
         }
     }
