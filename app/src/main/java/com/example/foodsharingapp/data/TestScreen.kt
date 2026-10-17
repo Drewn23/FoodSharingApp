@@ -1,4 +1,4 @@
-package com.example.foodsharingapp.ViewModel
+package com.example.foodsharingapp.data
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -9,6 +9,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.foodsharingapp.ViewModel.HomeViewModel
 
 @Composable
 fun TestScreen(vm: HomeViewModel) {
