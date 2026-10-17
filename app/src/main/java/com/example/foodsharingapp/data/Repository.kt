@@ -11,7 +11,10 @@ class Repository(private val db: DataDb) {
     private val shareDao = db.shareDao()
 
     val allFood: Flow<List<FoodWithPlace>> = foodDao.getAll()
+    val allShares: Flow<List<ShareRecord>> = shareDao.getAll()
+
     fun getFood(id: Long): Flow<FoodWithPlace?> = foodDao.getById(id)
+    fun getSharesForFood(foodId: Long): Flow<List<ShareRecord>> = shareDao.getForFood(foodId)
     fun searchByTag(tag: String): Flow<List<FoodWithPlace>> =
         foodDao.searchByTag(cleanTag(tag))
 
@@ -19,7 +22,8 @@ class Repository(private val db: DataDb) {
         photo: String,
         description: String,
         tags: List<String>,
-        place: Place?
+        place: Place?,
+        timeDate: Long = System.currentTimeMillis()
     ): Long = db.withTransaction {
         val placeId = place?.let { placeDao.insert(it) }
         val t = cleanTags(tags)
@@ -27,6 +31,7 @@ class Repository(private val db: DataDb) {
             MyFoodRecord(
                 photo = photo,
                 description = description,
+                timeDate = timeDate,
                 tag1 = t.getOrNull(0),
                 tag2 = t.getOrNull(1),
                 tag3 = t.getOrNull(2),
@@ -45,7 +50,14 @@ class Repository(private val db: DataDb) {
     ) = db.withTransaction {
         val placeId = when {
             clearPlace -> null
-            newPlace != null -> placeDao.insert(newPlace)
+            newPlace != null -> {
+                if (existing.placeId != null) {
+                    placeDao.update(newPlace.copy(id = existing.placeId))
+                    existing.placeId
+                } else {
+                    placeDao.insert(newPlace)
+                }
+            }
             else -> existing.placeId
         }
         val t = cleanTags(tags)
@@ -69,8 +81,8 @@ class Repository(private val db: DataDb) {
     suspend fun deleteShare(share: ShareRecord) = shareDao.delete(share)
     suspend fun setFavorite(food: MyFoodRecord, favorite: Boolean) =
         foodDao.update(food.copy(isFavorite = favorite))
-    suspend fun recordShare(foodId: Long, shareAt: Double) =
-        shareDao.insert(ShareRecord(foodId = foodId))
+    suspend fun recordShare(foodId: Long, shareAt: Long = System.currentTimeMillis()): Long =
+        shareDao.insert(ShareRecord(foodId = foodId, shareAt = shareAt))
 
     private fun cleanTag(raw: String): String = raw.trim().removePrefix("@").lowercase()
     private fun cleanTags(raw: List<String>): List<String> =

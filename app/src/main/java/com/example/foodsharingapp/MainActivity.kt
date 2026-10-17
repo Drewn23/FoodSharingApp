@@ -5,11 +5,12 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.foodsharingapp.data.DataDb
 import com.example.foodsharingapp.ViewModel.HomeViewModel
-import com.example.foodsharingapp.data.Repository
-import com.example.foodsharingapp.data.TestScreen
 import com.example.foodsharingapp.ViewModel.ViewModelFactory
+import com.example.foodsharingapp.data.DataDb
+import com.example.foodsharingapp.data.Repository
+import com.example.foodsharingapp.data.SettingsRepository
+import com.example.foodsharingapp.ui.theme.AppNav
 import com.example.foodsharingapp.ui.theme.FoodSharingAppTheme
 
 class MainActivity : ComponentActivity() {
@@ -20,14 +21,12 @@ class MainActivity : ComponentActivity() {
         // build the database and the repo
         val db = DataDb.get(applicationContext)
         val repo = Repository(db)
+        val settingsRepo = SettingsRepository(applicationContext)
 
         setContent {
             FoodSharingAppTheme {
-                // viewmodel, using factory
                 val homeVm: HomeViewModel = viewModel(factory = ViewModelFactory(repo))
-
-                // Show the screen
-                TestScreen(homeVm)
+                AppNav(homeVm = homeVm, settingsRepo = settingsRepo)
             }
         }
     }

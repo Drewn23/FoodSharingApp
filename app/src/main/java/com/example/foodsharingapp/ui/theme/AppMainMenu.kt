@@ -37,31 +37,21 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 
+import androidx.compose.ui.text.font.FontWeight
+import com.example.foodsharingapp.data.FoodWithPlace
+
 @Preview
 @Composable
 fun AppMenu (
     modifier: Modifier = Modifier,
+    foods: List<FoodWithPlace> = emptyList(),
+    searchQuery: String = "",
+    onSearchChange: (String) -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onLogoutClick: () -> Unit = {},
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-    var searchQuery by remember { mutableStateOf("") }
-
-    // Sample database options / items list
-    val databaseOptions = listOf("Item 1", "Item 2", "Item 3", "Food Item A", "Food Item B")
-    
-    // Filter database options based on search tag @ or query
-    val filteredOptions = databaseOptions.filter { item ->
-        if (searchQuery.startsWith("@")) {
-            val tagQuery = searchQuery.removePrefix("@").trim()
-            item.contains(tagQuery, ignoreCase = true)
-        } else if (searchQuery.isNotBlank()) {
-            item.contains(searchQuery, ignoreCase = true)
-        } else {
-            true
-        }
-    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -124,7 +114,7 @@ fun AppMenu (
             // Search tag @ bar
             OutlinedTextField(
                 value = searchQuery,
-                onValueChange = { searchQuery = it },
+                onValueChange = onSearchChange,
                 placeholder = { Text("Search @tag...") },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -137,7 +127,7 @@ fun AppMenu (
                     .weight(1f)
                     .fillMaxWidth()
             ) {
-                if (filteredOptions.isEmpty()) {
+                if (foods.isEmpty()) {
                     item {
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
@@ -158,13 +148,27 @@ fun AppMenu (
                         }
                     }
                 } else {
-                    items(filteredOptions) { option ->
+                    items(foods) { item ->
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 8.dp)
                         ) {
-                            Text(text = option)
+                            Column {
+                                Text(
+                                    text = item.food.description.ifEmpty { "Food Entry #${item.food.id}" },
+                                    fontWeight = FontWeight.Bold
+                                )
+                                val tags = listOfNotNull(item.food.tag1, item.food.tag2, item.food.tag3)
+                                    .filter { it.isNotEmpty() }
+                                    .joinToString(" ") { "#$it" }
+                                if (tags.isNotEmpty()) {
+                                    Text(text = tags, color = Color.Gray)
+                                }
+                                item.place?.let { place ->
+                                    Text(text = "📍 ${place.name}", color = Color.DarkGray)
+                                }
+                            }
                         }
                     }
                 }

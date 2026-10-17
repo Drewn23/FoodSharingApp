@@ -18,7 +18,12 @@ interface PlaceDao {
 
     @Query("SELECT * FROM places")
     suspend fun getAllData(): List<Place>
+
+    @Query("SELECT * FROM places WHERE id = :id")
+    suspend fun getById(id: Long): Place?
+
     @Insert suspend fun insert(place: Place): Long
+    @Update suspend fun update(place: Place)
 }
 
 @Dao
@@ -48,4 +53,10 @@ interface MyFoodRecordDao {
 interface ShareRecordDao {
     @Insert suspend fun insert(share: ShareRecord): Long
     @Delete suspend fun delete(share: ShareRecord)
+
+    @Query("SELECT * FROM shares_data WHERE foodId = :foodId ORDER BY shareAt DESC")
+    fun getForFood(foodId: Long): Flow<List<ShareRecord>>
+
+    @Query("SELECT * FROM shares_data ORDER BY shareAt DESC")
+    fun getAll(): Flow<List<ShareRecord>>
 }

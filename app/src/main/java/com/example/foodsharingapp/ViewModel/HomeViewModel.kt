@@ -30,9 +30,4 @@ class HomeViewModel(private val repo: Repository) : ViewModel() {
     }
 
     fun delete(item: FoodWithPlace) = viewModelScope.launch { repo.deleteFood(item.food) }
-
-    // TEMPORARY: for the Step 10 test, delete later
-    fun addTestEntry() = viewModelScope.launch {
-        repo.saveFood("test.jpg", "Nasi lemak", listOf("@Breakfast"), null)
-    }
 }

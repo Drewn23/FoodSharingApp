@@ -47,6 +47,10 @@ import org.intellij.lang.annotations.JdkConstants
 @Composable
 fun AppSetting(
     onCloseClick: () -> Unit = {},
+    cameraOn: Boolean = true,
+    mapOn: Boolean = true,
+    onCameraToggle: (Boolean) -> Unit = {},
+    onMapToggle: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier,
     Version: String = "Version 1.0.0"
 ) {
@@ -61,8 +65,8 @@ fun AppSetting(
             onClick = onCloseClick
         )
         ThemeSetting()
-        CameraSetting()
-        MapSetting()
+        CameraSetting(checked = cameraOn, onStateChanged = onCameraToggle)
+        MapSetting(checked = mapOn, onStateChanged = onMapToggle)
         Spacer(modifier = Modifier.weight(1f))
         Text(Version, fontSize = 24.sp)
     }
@@ -163,11 +167,9 @@ fun ThemeSetting(
 @Composable
 fun CameraSetting(
     modifier: Modifier = Modifier,
-    initialState: Boolean = false,
+    checked: Boolean = true,
     onStateChanged: (Boolean) -> Unit = {}
 ) {
-    var isOn by remember { mutableStateOf(initialState) }
-
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -183,11 +185,8 @@ fun CameraSetting(
         )
 
         CustomSlideSwitch(
-            checked = isOn,
-            onCheckedChange = { newValue ->
-                isOn = newValue
-                onStateChanged(newValue)
-            }
+            checked = checked,
+            onCheckedChange = onStateChanged
         )
     }
 }
@@ -196,11 +195,9 @@ fun CameraSetting(
 @Composable
 fun MapSetting(
     modifier: Modifier = Modifier,
-    initialState: Boolean = false,
+    checked: Boolean = true,
     onStateChanged: (Boolean) -> Unit = {}
 ) {
-    var isOn by remember { mutableStateOf(initialState) }
-
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -216,11 +213,8 @@ fun MapSetting(
         )
 
         CustomSlideSwitch(
-            checked = isOn,
-            onCheckedChange = { newValue ->
-                isOn = newValue
-                onStateChanged(newValue)
-            }
+            checked = checked,
+            onCheckedChange = onStateChanged
         )
     }
 }
