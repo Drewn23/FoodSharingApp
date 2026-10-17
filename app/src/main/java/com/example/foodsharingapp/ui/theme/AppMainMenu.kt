@@ -46,6 +46,14 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.ui.text.font.FontWeight
 import coil3.compose.AsyncImage
 import com.example.foodsharingapp.data.FoodWithPlace
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+private fun formatDate(timeMillis: Long): String {
+    val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+    return sdf.format(Date(timeMillis))
+}
 
 @Preview
 @Composable
@@ -309,6 +317,17 @@ fun InfoTable(
     item: FoodWithPlace? = null,
     onShareClick: () -> Unit = {}
 ) {
+    val dateText = item?.let { formatDate(it.food.timeDate) } ?: "Date not found"
+
+    val tags = item?.let {
+        listOfNotNull(it.food.tag1, it.food.tag2, it.food.tag3)
+            .filter { tag -> !tag.isNullOrBlank() }
+            .joinToString(" ") { tag -> "#$tag" }
+    } ?: ""
+
+    val description = item?.food?.description ?: ""
+    val placeName = item?.place?.name ?: ""
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -317,7 +336,7 @@ fun InfoTable(
             .padding(16.dp)
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -326,21 +345,19 @@ fun InfoTable(
             ) {
                 Column {
                     Text(
-                        text = "00/00/0000",
+                        // Date is important and taken from database
+                        text = dateText,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Medium,
                         color = Color.Black
                     )
-                    val tags = item?.let {
-                        listOfNotNull(it.food.tag1, it.food.tag2, it.food.tag3)
-                            .filter { tag -> tag.isNotEmpty() }
-                            .joinToString(" ") { tag -> "#$tag" }
-                    } ?: ""
-                    Text(
-                        text = if (tags.isNotEmpty()) "@ $tags" else "@",
-                        fontSize = 16.sp,
-                        color = Color.Black
-                    )
+                    if (tags.isNotBlank()) {
+                        Text(
+                            text = "@ $tags",
+                            fontSize = 16.sp,
+                            color = Color.Black
+                        )
+                    }
                 }
                 IconButton(
                     onClick = onShareClick,
@@ -353,14 +370,18 @@ fun InfoTable(
                     )
                 }
             }
-            Text(
-                text = item?.food?.description?.ifEmpty { "Description" } ?: "Description",
-                fontSize = 16.sp,
-                color = Color.Black
-            )
-            item?.place?.let { place ->
+
+            if (description.isNotBlank()) {
                 Text(
-                    text = "📍 ${place.name}",
+                    text = description,
+                    fontSize = 16.sp,
+                    color = Color.Black
+                )
+            }
+
+            if (placeName.isNotBlank()) {
+                Text(
+                    text = "📍 $placeName",
                     fontSize = 14.sp,
                     color = Color.DarkGray
                 )
