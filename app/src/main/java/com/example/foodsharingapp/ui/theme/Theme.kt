@@ -10,49 +10,53 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
+import com.example.foodsharingapp.data.AppTheme
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+private val RedColorScheme = lightColorScheme(
+    primary = RedPrimary,
+    primaryContainer = RedContainer,
+    onPrimaryContainer = RedOnContainer,
+    secondary = RedSecondary,
+    secondaryContainer = RedContainer,
+    background = RedBackground,
+    onBackground = RedOnBackground,
+    surface = RedBackground,
+    onSurface = RedOnBackground
 )
 
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
+private val PeachColorScheme = lightColorScheme(
+    primary = PeachPrimary,
+    primaryContainer = PeachContainer,
+    onPrimaryContainer = PeachOnContainer,
+    secondary = PeachSecondary,
+    secondaryContainer = PeachContainer,
+    background = PeachBackground,
+    onBackground = PeachOnBackground,
+    surface = PeachBackground,
+    onSurface = PeachOnBackground
+)
 
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+private val BlueColorScheme = lightColorScheme(
+    primary = BluePrimary,
+    primaryContainer = BlueContainer,
+    onPrimaryContainer = BlueOnContainer,
+    secondary = BlueSecondary,
+    secondaryContainer = BlueContainer,
+    background = BlueBackground,
+    onBackground = BlueOnBackground,
+    surface = BlueBackground,
+    onSurface = BlueOnBackground
 )
 
 @Composable
 fun FoodSharingAppTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    appTheme: AppTheme = AppTheme.PEACH,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+    val colorScheme = when (appTheme) {
+        AppTheme.RED -> RedColorScheme
+        AppTheme.PEACH -> PeachColorScheme
+        AppTheme.BLUE -> BlueColorScheme
     }
-
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
 }

@@ -8,9 +8,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.foodsharingapp.ViewModel.HomeViewModel
+import com.example.foodsharingapp.data.AppTheme
 import com.example.foodsharingapp.data.SettingsRepository
 import kotlinx.coroutines.launch
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -39,6 +39,7 @@ fun AppNav(
     val foods by homeVm.foods.collectAsState()
     val searchQuery by homeVm.searchText.collectAsState()
 
+    val theme by settingsRepo.theme.collectAsState(initial = AppTheme.PEACH)
     val cameraOn by settingsRepo.cameraOn.collectAsState(initial = true)
     val mapOn by settingsRepo.mapOn.collectAsState(initial = true)
 
@@ -59,9 +60,11 @@ fun AppNav(
         }
         composable<Settings>{
             AppSetting(
-                onCloseClick = { nav.navigate(Menu)},
+                selectedTheme = theme,
                 cameraOn = cameraOn,
                 mapOn = mapOn,
+                onBack = { nav.navigate(Menu) },
+                onThemeChange = { newTheme -> scope.launch { settingsRepo.setTheme(newTheme) } },
                 onCameraToggle = { enabled -> scope.launch { settingsRepo.setCameraOn(enabled) } },
                 onMapToggle = { enabled -> scope.launch { settingsRepo.setMapOn(enabled) } }
             )

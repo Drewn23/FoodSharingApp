@@ -16,10 +16,9 @@ import java.io.IOException
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
 enum class AppTheme(val value: String) {
-    TAN("tan"),
-    LIGHT("light"),
-    DARK("dark"),
-    SYSTEM("system")
+    RED("red"),
+    PEACH("peach"),
+    BLUE("blue")
 }
 
 class SettingsRepository(private val context: Context) {
@@ -36,7 +35,7 @@ class SettingsRepository(private val context: Context) {
         }
         .map { preferences ->
             val rawValue = preferences[Keys.THEME]
-            AppTheme.entries.find { it.value == rawValue } ?: AppTheme.TAN
+            AppTheme.entries.find { it.value == rawValue } ?: AppTheme.PEACH
         }
 
     val cameraOn: Flow<Boolean> = context.dataStore.data

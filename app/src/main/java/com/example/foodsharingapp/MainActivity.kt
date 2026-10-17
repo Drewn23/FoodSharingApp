@@ -4,9 +4,12 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.foodsharingapp.ViewModel.HomeViewModel
 import com.example.foodsharingapp.ViewModel.ViewModelFactory
+import com.example.foodsharingapp.data.AppTheme
 import com.example.foodsharingapp.data.DataDb
 import com.example.foodsharingapp.data.Repository
 import com.example.foodsharingapp.data.SettingsRepository
@@ -24,8 +27,9 @@ class MainActivity : ComponentActivity() {
         val settingsRepo = SettingsRepository(applicationContext)
 
         setContent {
-            FoodSharingAppTheme {
-                val homeVm: HomeViewModel = viewModel(factory = ViewModelFactory(repo))
+            val appTheme by settingsRepo.theme.collectAsState(initial = AppTheme.PEACH)
+            FoodSharingAppTheme(appTheme = appTheme) {
+                val homeVm: HomeViewModel = viewModel(factory = ViewModelFactory(repo, settingsRepo))
                 AppNav(homeVm = homeVm, settingsRepo = settingsRepo)
             }
         }
