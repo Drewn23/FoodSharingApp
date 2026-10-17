@@ -85,7 +85,9 @@ fun AddingPage(
 
     var photo by remember { mutableStateOf(initialPhoto) }
     var description by remember { mutableStateOf(initialDescription) }
-    var tagsInput by remember { mutableStateOf(initialTags.joinToString(", ")) }
+    var tag1 by remember { mutableStateOf(initialTags.getOrNull(0) ?: "") }
+    var tag2 by remember { mutableStateOf(initialTags.getOrNull(1) ?: "") }
+    var tag3 by remember { mutableStateOf(initialTags.getOrNull(2) ?: "") }
     var placeName by remember { mutableStateOf(initialPlace?.name ?: "") }
     var showPhotoDialog by remember { mutableStateOf(false) }
     var showTagDialog by remember { mutableStateOf(false) }
@@ -125,10 +127,8 @@ fun AddingPage(
         }
     }
 
-    val parsedTags = remember(tagsInput) {
-        tagsInput.split(",")
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
+    val parsedTags = remember(tag1, tag2, tag3) {
+        listOf(tag1, tag2, tag3).map { it.trim() }.filter { it.isNotEmpty() }
     }
 
     val currentPlace = remember(placeName) {
@@ -214,7 +214,7 @@ fun AddingPage(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = if (parsedTags.isEmpty()) "Add tag" else "Tags:\n${parsedTags.take(2).joinToString()}",
+                    text = if (parsedTags.isEmpty()) "Add tag" else "Tags:\n${parsedTags.joinToString(", ")}",
                     fontSize = 16.sp,
                     textAlign = TextAlign.Center,
                     color = Color.Black,
@@ -325,6 +325,13 @@ fun AddingPage(
                     ) {
                         Text("Take Photo (Camera)")
                     }
+
+                    OutlinedTextField(
+                        value = tempPhoto,
+                        onValueChange = { tempPhoto = it },
+                        placeholder = { Text("Or enter photo URI") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             },
             confirmButton = {
@@ -346,20 +353,45 @@ fun AddingPage(
     }
 
     if (showTagDialog) {
-        var tempTags by remember { mutableStateOf(tagsInput) }
+        var tempTag1 by remember { mutableStateOf(tag1) }
+        var tempTag2 by remember { mutableStateOf(tag2) }
+        var tempTag3 by remember { mutableStateOf(tag3) }
+
         AlertDialog(
             onDismissRequest = { showTagDialog = false },
-            title = { Text("Add Tags") },
+            title = { Text("Add Tags (Up to 3)") },
             text = {
-                OutlinedTextField(
-                    value = tempTags,
-                    onValueChange = { tempTags = it },
-                    placeholder = { Text("Enter tags separated by comma (e.g. @Breakfast, @Yum)") }
-                )
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedTextField(
+                        value = tempTag1,
+                        onValueChange = { tempTag1 = it },
+                        placeholder = { Text("Tag 1 (e.g. Breakfast)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = tempTag2,
+                        onValueChange = { tempTag2 = it },
+                        placeholder = { Text("Tag 2 (e.g. Yum)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = tempTag3,
+                        onValueChange = { tempTag3 = it },
+                        placeholder = { Text("Tag 3 (e.g. Healthy)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
             },
             confirmButton = {
                 TextButton(onClick = {
-                    tagsInput = tempTags
+                    tag1 = tempTag1
+                    tag2 = tempTag2
+                    tag3 = tempTag3
                     showTagDialog = false
                 }) {
                     Text("OK")
