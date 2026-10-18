@@ -32,6 +32,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -41,6 +42,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,9 +61,9 @@ import coil3.compose.AsyncImage
 import com.example.foodsharingapp.data.Place
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.File
@@ -69,6 +71,7 @@ import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Locale
+import kotlin.coroutines.resume
 
 val CyanButtonColor = Color(0xFF78D6DF)
 
@@ -89,83 +92,55 @@ fun saveBitmapToCache(context: Context, bitmap: Bitmap): String {
     return Uri.fromFile(file).toString()
 }
 
-fun fetchCurrentLocation(
-    context: Context,
-    onLocationFetched: (name: String, lat: Double, lng: Double) -> Unit
-) {
+suspend fun getDeviceLocation(context: Context): Location? {
     val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
-
-    fun geocodeLocation(location: Location) {
-        CoroutineScope(Dispatchers.IO).launch {
-            // Try Nominatim API first (Internet feature)
-            try {
-                val urlStr = "https://nominatim.openstreetmap.org/reverse?format=json&lat=${location.latitude}&lon=${location.longitude}"
-                val url = URL(urlStr)
-                val connection = url.openConnection() as HttpURLConnection
-                connection.setRequestProperty("User-Agent", "FoodSharingApp/1.0")
-                connection.connectTimeout = 4000
-                connection.readTimeout = 4000
-                if (connection.responseCode == 200) {
-                    val response = connection.inputStream.bufferedReader().use { it.readText() }
-                    val json = JSONObject(response)
-                    val displayName = json.optString("display_name", "")
-                    if (displayName.isNotBlank()) {
-                        val parts = displayName.split(",")
-                        val name = parts.firstOrNull()?.trim() ?: displayName
-                        withContext(Dispatchers.Main) {
-                            onLocationFetched(name, location.latitude, location.longitude)
+    return suspendCancellableCoroutine { continuation ->
+        try {
+            fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                if (location != null) {
+                    continuation.resume(location)
+                } else {
+                    fusedLocationClient.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, null)
+                        .addOnSuccessListener { curLoc ->
+                            continuation.resume(curLoc)
                         }
-                        return@launch
-                    }
-                }
-            } catch (_: Exception) {}
-
-            // Fallback to built-in Geocoder if Nominatim fails or offline
-            withContext(Dispatchers.Main) {
-                val geocoder = Geocoder(context, Locale.getDefault())
-                try {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        geocoder.getFromLocation(location.latitude, location.longitude, 1) { addresses ->
-                            val address = addresses.firstOrNull()
-                            val name = address?.locality ?: address?.featureName ?: "Location (${location.latitude.toString().take(6)}, ${location.longitude.toString().take(6)})"
-                            onLocationFetched(name, location.latitude, location.longitude)
+                        .addOnFailureListener {
+                            continuation.resume(null)
                         }
-                    } else {
-                        @Suppress("DEPRECATION")
-                        val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
-                        val address = addresses?.firstOrNull()
-                        val name = address?.locality ?: address?.featureName ?: "Location (${location.latitude.toString().take(6)}, ${location.longitude.toString().take(6)})"
-                        onLocationFetched(name, location.latitude, location.longitude)
-                    }
-                } catch (_: Exception) {
-                    onLocationFetched("Location (${location.latitude.toString().take(6)}, ${location.longitude.toString().take(6)})", location.latitude, location.longitude)
                 }
+            }.addOnFailureListener {
+                continuation.resume(null)
             }
+        } catch (_: SecurityException) {
+            continuation.resume(null)
         }
     }
+}
 
+suspend fun reverseGeocodeNominatim(lat: Double, lon: Double): String? = withContext(Dispatchers.IO) {
+    var connection: HttpURLConnection? = null
     try {
-        fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
-            if (location != null) {
-                geocodeLocation(location)
-            } else {
-                fusedLocationClient.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, null)
-                    .addOnSuccessListener { curLoc: Location? ->
-                        if (curLoc != null) {
-                            geocodeLocation(curLoc)
-                        } else {
-                            onLocationFetched("Location (Captured)", 0.0, 0.0)
-                        }
-                    }.addOnFailureListener {
-                        onLocationFetched("Location (Captured)", 0.0, 0.0)
-                    }
+        val urlStr = "https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lon"
+        val url = URL(urlStr)
+        connection = url.openConnection() as HttpURLConnection
+        connection.setRequestProperty("User-Agent", "FoodSharingApp/1.0")
+        connection.connectTimeout = 5000
+        connection.readTimeout = 5000
+
+        if (connection.responseCode == 200) {
+            val response = connection.inputStream.bufferedReader().use { it.readText() }
+            val json = JSONObject(response)
+            val displayName = json.optString("display_name", "")
+            if (displayName.isNotBlank()) {
+                val parts = displayName.split(",")
+                return@withContext parts.firstOrNull()?.trim() ?: displayName
             }
-        }.addOnFailureListener {
-            onLocationFetched("Location (Captured)", 0.0, 0.0)
         }
-    } catch (_: SecurityException) {
-        onLocationFetched("Location (Captured)", 0.0, 0.0)
+    } catch (_: Exception) {
+    } finally {
+        connection?.disconnect()
     }
+    null
 }
 
 @Preview(showBackground = true)
@@ -202,6 +177,61 @@ fun AddingPage(
     var showMapDialog by remember { mutableStateOf(false) }
     var showCameraPermissionDeniedDialog by remember { mutableStateOf(false) }
     var showLocationPermissionDeniedDialog by remember { mutableStateOf(false) }
+
+    // Nominatim Network Feedback States
+    var isFetchingLocation by remember { mutableStateOf(false) }
+    var locationStatusMessage by remember { mutableStateOf<String?>(null) }
+    var locationFetchFailed by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    val fetchLocationAction = {
+        isFetchingLocation = true
+        locationFetchFailed = false
+        locationStatusMessage = "Connecting to Nominatim & fetching GPS..."
+        scope.launch {
+            try {
+                val location = getDeviceLocation(context)
+                if (location != null) {
+                    locationStatusMessage = "Querying OpenStreetMap Nominatim..."
+                    val place = reverseGeocodeNominatim(location.latitude, location.longitude)
+                    if (place != null) {
+                        placeName = place
+                        locationStatusMessage = "Success! Location retrieved via Nominatim."
+                        locationFetchFailed = false
+                        showMapDialog = false
+                    } else {
+                        // Fallback to built-in Geocoder
+                        val geocoder = Geocoder(context, Locale.getDefault())
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            geocoder.getFromLocation(location.latitude, location.longitude, 1) { addresses ->
+                                val address = addresses.firstOrNull()
+                                placeName = address?.locality ?: address?.featureName ?: "Location (${location.latitude.toString().take(6)})"
+                                locationStatusMessage = "Success! Location retrieved (Geocoder fallback)."
+                                locationFetchFailed = false
+                                showMapDialog = false
+                            }
+                        } else {
+                            @Suppress("DEPRECATION")
+                            val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
+                            val address = addresses?.firstOrNull()
+                            placeName = address?.locality ?: address?.featureName ?: "Location (${location.latitude.toString().take(6)})"
+                            locationStatusMessage = "Success! Location retrieved."
+                            locationFetchFailed = false
+                            showMapDialog = false
+                        }
+                    }
+                } else {
+                    locationFetchFailed = true
+                    locationStatusMessage = "Failed to get GPS location. No signal or location disabled."
+                }
+            } catch (_: Exception) {
+                locationFetchFailed = true
+                locationStatusMessage = "Network error / No internet connection. Please retry."
+            } finally {
+                isFetchingLocation = false
+            }
+        }
+    }
 
     // Launchers for gallery, camera, and location
     val galleryLauncher = rememberLauncherForActivityResult(
@@ -245,10 +275,7 @@ fun AddingPage(
         val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
                 permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
         if (granted) {
-            fetchCurrentLocation(context) { name, _, _ ->
-                placeName = name
-                showMapDialog = false
-            }
+            fetchLocationAction()
         } else {
             showLocationPermissionDeniedDialog = true
         }
@@ -269,7 +296,6 @@ fun AddingPage(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Top Right Save Button
-        // Become clickable when a picture is selected, that way errorMessage is not required
         Box(
             modifier = Modifier.fillMaxWidth(),
             contentAlignment = Alignment.TopEnd
@@ -312,7 +338,6 @@ fun AddingPage(
                     )
                 }
             } else {
-                // Must be able to show the either picture that is saved in gallery
                 AsyncImage(
                     model = photo,
                     contentDescription = "Selected Picture",
@@ -325,12 +350,10 @@ fun AddingPage(
         Spacer(modifier = Modifier.height(24.dp))
 
         // Middle Row: Add tag & Add map buttons
-        //Must be inline with Picture box
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            // Add tag button, take 0.5f empty space
             Box(
                 modifier = Modifier
                     .size(width = 110.dp, height = 120.dp)
@@ -350,7 +373,6 @@ fun AddingPage(
             }
             Spacer(modifier = Modifier.width(8.dp))
 
-            // Add map button must take up 0.5f of space
             Box(
                 modifier = Modifier
                     .size(width = 110.dp, height = 120.dp)
@@ -378,7 +400,6 @@ fun AddingPage(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Description Box must display "Description" as text before when entering Show what is entered instead
         OutlinedTextField(
             value = description,
             onValueChange = { description = it },
@@ -409,7 +430,6 @@ fun AddingPage(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // Cancel Button at bottom
         Button(
             onClick = onCancelClick,
             shape = RoundedCornerShape(20.dp),
@@ -577,25 +597,32 @@ fun AddingPage(
     if (showMapDialog) {
         var tempPlace by remember { mutableStateOf(placeName) }
         AlertDialog(
-            onDismissRequest = { showMapDialog = false },
-            title = { Text("Add Map Location") },
+            onDismissRequest = {
+                if (!isFetchingLocation) {
+                    showMapDialog = false
+                }
+            },
+            title = { Text("Add Map Location (Nominatim)") },
             text = {
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Button(
-                        onClick = {
-                            if (!mapOn) {
-                                Toast.makeText(context, "Map/Location feature is disabled in Settings", Toast.LENGTH_SHORT).show()
-                            } else {
+                    if (isFetchingLocation) {
+                        CircularProgressIndicator(color = Color.Black)
+                        Text(
+                            text = locationStatusMessage ?: "Loading location...",
+                            textAlign = TextAlign.Center,
+                            fontSize = 14.sp
+                        )
+                    } else {
+                        Button(
+                            onClick = {
                                 val hasFine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
                                 val hasCoarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
                                 if (hasFine || hasCoarse) {
-                                    fetchCurrentLocation(context) { name, _, _ ->
-                                        placeName = name
-                                        showMapDialog = false
-                                    }
+                                    fetchLocationAction()
                                 } else {
                                     locationPermissionLauncher.launch(
                                         arrayOf(
@@ -604,47 +631,68 @@ fun AddingPage(
                                         )
                                     )
                                 }
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = CyanButtonColor, contentColor = Color.Black)
-                    ) {
-                        Text("Use Device Location")
-                    }
-
-                    OutlinedTextField(
-                        value = tempPlace,
-                        onValueChange = { tempPlace = it },
-                        placeholder = { Text("Or enter location name (e.g. Central Mall)") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    if (tempPlace.isNotBlank()) {
-                        Button(
-                            onClick = {
-                                tempPlace = ""
-                                placeName = ""
-                                showMapDialog = false
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6B6B), contentColor = Color.White)
+                            colors = ButtonDefaults.buttonColors(containerColor = CyanButtonColor, contentColor = Color.Black)
                         ) {
-                            Text("Clear Location")
+                            Text("Use Device Location (Nominatim)")
+                        }
+
+                        if (locationFetchFailed) {
+                            Text(
+                                text = locationStatusMessage ?: "Failed to connect.",
+                                color = Color.Red,
+                                textAlign = TextAlign.Center,
+                                fontSize = 14.sp
+                            )
+                            Button(
+                                onClick = { fetchLocationAction() },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800), contentColor = Color.White)
+                            ) {
+                                Text("Retry Connection")
+                            }
+                        }
+
+                        OutlinedTextField(
+                            value = tempPlace,
+                            onValueChange = { tempPlace = it },
+                            placeholder = { Text("Or enter location name manually") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        if (tempPlace.isNotBlank()) {
+                            Button(
+                                onClick = {
+                                    tempPlace = ""
+                                    placeName = ""
+                                    locationStatusMessage = null
+                                    locationFetchFailed = false
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6B6B), contentColor = Color.White)
+                            ) {
+                                Text("Clear Location")
+                            }
                         }
                     }
                 }
             },
             confirmButton = {
-                TextButton(onClick = {
-                    placeName = tempPlace
-                    showMapDialog = false
-                }) {
-                    Text("OK")
+                if (!isFetchingLocation) {
+                    TextButton(onClick = {
+                        placeName = tempPlace
+                        showMapDialog = false
+                    }) {
+                        Text("OK")
+                    }
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showMapDialog = false }) {
-                    Text("Cancel")
+                if (!isFetchingLocation) {
+                    TextButton(onClick = { showMapDialog = false }) {
+                        Text("Cancel")
+                    }
                 }
             }
         )
