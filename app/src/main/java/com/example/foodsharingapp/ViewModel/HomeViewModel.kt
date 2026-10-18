@@ -47,6 +47,6 @@ class HomeViewModel(private val repo: Repository) : ViewModel() {
         tags: List<String>,
         place: com.example.foodsharingapp.data.Place?
     ) = viewModelScope.launch {
-        repo.updateFood(existing, photo, description, tags, place)
+        repo.updateFood(existing, photo, description, tags, place, clearPlace = (place == null))
     }
 }

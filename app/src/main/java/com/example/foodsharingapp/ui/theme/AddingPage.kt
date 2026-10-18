@@ -3,12 +3,16 @@ package com.example.foodsharingapp.ui.theme
 import android.Manifest
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.content.pm.ActivityInfo
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.location.Geocoder
 import android.location.Location
 import android.net.Uri
 import android.os.Build
+import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -50,14 +54,24 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import coil3.compose.AsyncImage
 import com.example.foodsharingapp.data.Place
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import java.io.File
 import java.io.FileOutputStream
 import java.util.Locale
 
 val CyanButtonColor = Color(0xFF78D6DF)
+
+fun openAppSettings(context: Context) {
+    val intent = Intent(
+        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+        Uri.fromParts("package", context.packageName, null)
+    )
+    context.startActivity(intent)
+}
 
 fun saveBitmapToCache(context: Context, bitmap: Bitmap): String {
     val file = File(context.cacheDir, "camera_photo_${System.currentTimeMillis()}.jpg")
@@ -73,29 +87,43 @@ fun fetchCurrentLocation(
     onLocationFetched: (name: String, lat: Double, lng: Double) -> Unit
 ) {
     val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+
+    fun geocodeLocation(location: Location) {
+        val geocoder = Geocoder(context, Locale.getDefault())
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                geocoder.getFromLocation(location.latitude, location.longitude, 1) { addresses ->
+                    val address = addresses.firstOrNull()
+                    val name = address?.locality ?: address?.featureName ?: "Location (${location.latitude.toString().take(6)}, ${location.longitude.toString().take(6)})"
+                    onLocationFetched(name, location.latitude, location.longitude)
+                }
+            } else {
+                @Suppress("DEPRECATION")
+                val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
+                val address = addresses?.firstOrNull()
+                val name = address?.locality ?: address?.featureName ?: "Location (${location.latitude.toString().take(6)}, ${location.longitude.toString().take(6)})"
+                onLocationFetched(name, location.latitude, location.longitude)
+            }
+        } catch (_: Exception) {
+            onLocationFetched("Location (${location.latitude.toString().take(6)}, ${location.longitude.toString().take(6)})", location.latitude, location.longitude)
+        }
+    }
+
     try {
         fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
             if (location != null) {
-                val geocoder = Geocoder(context, Locale.getDefault())
-                try {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        geocoder.getFromLocation(location.latitude, location.longitude, 1) { addresses ->
-                            val address = addresses.firstOrNull()
-                            val name = address?.locality ?: address?.featureName ?: "Location (${location.latitude.toString().take(6)}, ${location.longitude.toString().take(6)})"
-                            onLocationFetched(name, location.latitude, location.longitude)
-                        }
-                    } else {
-                        @Suppress("DEPRECATION")
-                        val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
-                        val address = addresses?.firstOrNull()
-                        val name = address?.locality ?: address?.featureName ?: "Location (${location.latitude.toString().take(6)}, ${location.longitude.toString().take(6)})"
-                        onLocationFetched(name, location.latitude, location.longitude)
-                    }
-                } catch (_: Exception) {
-                    onLocationFetched("Location (${location.latitude.toString().take(6)}, ${location.longitude.toString().take(6)})", location.latitude, location.longitude)
-                }
+                geocodeLocation(location)
             } else {
-                onLocationFetched("Location (Captured)", 0.0, 0.0)
+                fusedLocationClient.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, null)
+                    .addOnSuccessListener { curLoc: Location? ->
+                        if (curLoc != null) {
+                            geocodeLocation(curLoc)
+                        } else {
+                            onLocationFetched("Location (Captured)", 0.0, 0.0)
+                        }
+                    }.addOnFailureListener {
+                        onLocationFetched("Location (Captured)", 0.0, 0.0)
+                    }
             }
         }.addOnFailureListener {
             onLocationFetched("Location (Captured)", 0.0, 0.0)
@@ -113,6 +141,8 @@ fun AddingPage(
     initialDescription: String = "",
     initialTags: List<String> = emptyList(),
     initialPlace: Place? = null,
+    cameraOn: Boolean = true,
+    mapOn: Boolean = true,
     onSaveClick: (photo: String, description: String, tags: List<String>, place: Place?) -> Unit = { _, _, _, _ -> },
     onCancelClick: () -> Unit = {}
 ) {
@@ -135,6 +165,8 @@ fun AddingPage(
     var showPhotoDialog by remember { mutableStateOf(false) }
     var showTagDialog by remember { mutableStateOf(false) }
     var showMapDialog by remember { mutableStateOf(false) }
+    var showCameraPermissionDeniedDialog by remember { mutableStateOf(false) }
+    var showLocationPermissionDeniedDialog by remember { mutableStateOf(false) }
 
     // Launchers for gallery, camera, and location
     val galleryLauncher = rememberLauncherForActivityResult(
@@ -167,6 +199,8 @@ fun AddingPage(
     ) { isGranted: Boolean ->
         if (isGranted) {
             cameraLauncher.launch(null)
+        } else {
+            showCameraPermissionDeniedDialog = true
         }
     }
 
@@ -180,6 +214,8 @@ fun AddingPage(
                 placeName = name
                 showMapDialog = false
             }
+        } else {
+            showLocationPermissionDeniedDialog = true
         }
     }
 
@@ -285,7 +321,13 @@ fun AddingPage(
                     .size(width = 110.dp, height = 120.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(CyanButtonColor)
-                    .clickable { showMapDialog = true }
+                    .clickable {
+                        if (!mapOn) {
+                            Toast.makeText(context, "Map/Location feature is disabled in Settings", Toast.LENGTH_SHORT).show()
+                        } else {
+                            showMapDialog = true
+                        }
+                    }
                     .weight(0.5f),
                 contentAlignment = Alignment.Center
             ) {
@@ -374,7 +416,20 @@ fun AddingPage(
 
                     Button(
                         onClick = {
-                            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                            if (!cameraOn) {
+                                Toast.makeText(context, "Camera feature is disabled in Settings", Toast.LENGTH_SHORT).show()
+                            } else {
+                                val hasCameraPermission = ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.CAMERA
+                                ) == PackageManager.PERMISSION_GRANTED
+
+                                if (hasCameraPermission) {
+                                    cameraLauncher.launch(null)
+                                } else {
+                                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                                }
+                            }
                         },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = CyanButtonColor, contentColor = Color.Black)
@@ -402,6 +457,29 @@ fun AddingPage(
             },
             dismissButton = {
                 TextButton(onClick = { showPhotoDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showCameraPermissionDeniedDialog) {
+        AlertDialog(
+            onDismissRequest = { showCameraPermissionDeniedDialog = false },
+            title = { Text("Camera Permission Required") },
+            text = {
+                Text("Camera permission was denied. Android prevents showing the prompt again. Please enable Camera permission in App Settings, or select a photo from Gallery.")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showCameraPermissionDeniedDialog = false
+                    openAppSettings(context)
+                }) {
+                    Text("Open Settings")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCameraPermissionDeniedDialog = false }) {
                     Text("Cancel")
                 }
             }
@@ -472,12 +550,26 @@ fun AddingPage(
                 ) {
                     Button(
                         onClick = {
-                            locationPermissionLauncher.launch(
-                                arrayOf(
-                                    Manifest.permission.ACCESS_FINE_LOCATION,
-                                    Manifest.permission.ACCESS_COARSE_LOCATION
-                                )
-                            )
+                            if (!mapOn) {
+                                Toast.makeText(context, "Map/Location feature is disabled in Settings", Toast.LENGTH_SHORT).show()
+                            } else {
+                                val hasFine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                                val hasCoarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+                                if (hasFine || hasCoarse) {
+                                    fetchCurrentLocation(context) { name, _, _ ->
+                                        placeName = name
+                                        showMapDialog = false
+                                    }
+                                } else {
+                                    locationPermissionLauncher.launch(
+                                        arrayOf(
+                                            Manifest.permission.ACCESS_FINE_LOCATION,
+                                            Manifest.permission.ACCESS_COARSE_LOCATION
+                                        )
+                                    )
+                                }
+                            }
                         },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = CyanButtonColor, contentColor = Color.Black)
@@ -491,6 +583,20 @@ fun AddingPage(
                         placeholder = { Text("Or enter location name (e.g. Central Mall)") },
                         modifier = Modifier.fillMaxWidth()
                     )
+
+                    if (tempPlace.isNotBlank()) {
+                        Button(
+                            onClick = {
+                                tempPlace = ""
+                                placeName = ""
+                                showMapDialog = false
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6B6B), contentColor = Color.White)
+                        ) {
+                            Text("Clear Location")
+                        }
+                    }
                 }
             },
             confirmButton = {
@@ -503,6 +609,29 @@ fun AddingPage(
             },
             dismissButton = {
                 TextButton(onClick = { showMapDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showLocationPermissionDeniedDialog) {
+        AlertDialog(
+            onDismissRequest = { showLocationPermissionDeniedDialog = false },
+            title = { Text("Location Permission Required") },
+            text = {
+                Text("Location permission was denied. Android prevents showing the prompt again. Please enable Location permission in App Settings, or enter a location manually.")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showLocationPermissionDeniedDialog = false
+                    openAppSettings(context)
+                }) {
+                    Text("Open Settings")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLocationPermissionDeniedDialog = false }) {
                     Text("Cancel")
                 }
             }

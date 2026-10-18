@@ -3,8 +3,10 @@ package com.example.foodsharingapp.ui.theme
 import android.Manifest
 import android.app.Activity
 import android.content.pm.ActivityInfo
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -46,6 +48,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import coil3.compose.AsyncImage
 import com.example.foodsharingapp.data.Place
 
@@ -56,6 +59,8 @@ fun EdittingPage(
     initialDescription: String = "",
     initialTags: List<String> = emptyList(),
     initialPlace: Place? = null,
+    cameraOn: Boolean = true,
+    mapOn: Boolean = true,
     onSaveClick: (photo: String, description: String, tags: List<String>, place: Place?) -> Unit = { _, _, _, _ -> },
     onDeleteClick: () -> Unit = {},
     onCancelClick: () -> Unit = {}
@@ -79,6 +84,8 @@ fun EdittingPage(
     var showTagDialog by remember { mutableStateOf(false) }
     var showMapDialog by remember { mutableStateOf(false) }
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
+    var showCameraPermissionDeniedDialog by remember { mutableStateOf(false) }
+    var showLocationPermissionDeniedDialog by remember { mutableStateOf(false) }
 
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -110,6 +117,8 @@ fun EdittingPage(
     ) { isGranted: Boolean ->
         if (isGranted) {
             cameraLauncher.launch(null)
+        } else {
+            showCameraPermissionDeniedDialog = true
         }
     }
 
@@ -123,6 +132,8 @@ fun EdittingPage(
                 placeName = name
                 showMapDialog = false
             }
+        } else {
+            showLocationPermissionDeniedDialog = true
         }
     }
 
@@ -223,7 +234,13 @@ fun EdittingPage(
                     .size(width = 110.dp, height = 120.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(CyanButtonColor)
-                    .clickable { showMapDialog = true }
+                    .clickable {
+                        if (!mapOn) {
+                            Toast.makeText(context, "Map/Location feature is disabled in Settings", Toast.LENGTH_SHORT).show()
+                        } else {
+                            showMapDialog = true
+                        }
+                    }
                     .weight(0.5f),
                 contentAlignment = Alignment.Center
             ) {
@@ -357,7 +374,20 @@ fun EdittingPage(
 
                     Button(
                         onClick = {
-                            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                            if (!cameraOn) {
+                                Toast.makeText(context, "Camera feature is disabled in Settings", Toast.LENGTH_SHORT).show()
+                            } else {
+                                val hasCameraPermission = ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.CAMERA
+                                ) == PackageManager.PERMISSION_GRANTED
+
+                                if (hasCameraPermission) {
+                                    cameraLauncher.launch(null)
+                                } else {
+                                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                                }
+                            }
                         },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = CyanButtonColor, contentColor = Color.Black)
@@ -385,6 +415,29 @@ fun EdittingPage(
             },
             dismissButton = {
                 TextButton(onClick = { showPhotoDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showCameraPermissionDeniedDialog) {
+        AlertDialog(
+            onDismissRequest = { showCameraPermissionDeniedDialog = false },
+            title = { Text("Camera Permission Required") },
+            text = {
+                Text("Camera permission was denied. Android prevents showing the prompt again. Please enable Camera permission in App Settings, or select a photo from Gallery.")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showCameraPermissionDeniedDialog = false
+                    openAppSettings(context)
+                }) {
+                    Text("Open Settings")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCameraPermissionDeniedDialog = false }) {
                     Text("Cancel")
                 }
             }
@@ -455,12 +508,26 @@ fun EdittingPage(
                 ) {
                     Button(
                         onClick = {
-                            locationPermissionLauncher.launch(
-                                arrayOf(
-                                    Manifest.permission.ACCESS_FINE_LOCATION,
-                                    Manifest.permission.ACCESS_COARSE_LOCATION
-                                )
-                            )
+                            if (!mapOn) {
+                                Toast.makeText(context, "Map/Location feature is disabled in Settings", Toast.LENGTH_SHORT).show()
+                            } else {
+                                val hasFine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                                val hasCoarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+                                if (hasFine || hasCoarse) {
+                                    fetchCurrentLocation(context) { name, _, _ ->
+                                        placeName = name
+                                        showMapDialog = false
+                                    }
+                                } else {
+                                    locationPermissionLauncher.launch(
+                                        arrayOf(
+                                            Manifest.permission.ACCESS_FINE_LOCATION,
+                                            Manifest.permission.ACCESS_COARSE_LOCATION
+                                        )
+                                    )
+                                }
+                            }
                         },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = CyanButtonColor, contentColor = Color.Black)
@@ -474,6 +541,20 @@ fun EdittingPage(
                         placeholder = { Text("Or enter location name (e.g. Central Mall)") },
                         modifier = Modifier.fillMaxWidth()
                     )
+
+                    if (tempPlace.isNotBlank()) {
+                        Button(
+                            onClick = {
+                                tempPlace = ""
+                                placeName = ""
+                                showMapDialog = false
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6B6B), contentColor = Color.White)
+                        ) {
+                            Text("Clear Location")
+                        }
+                    }
                 }
             },
             confirmButton = {
@@ -486,6 +567,29 @@ fun EdittingPage(
             },
             dismissButton = {
                 TextButton(onClick = { showMapDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showLocationPermissionDeniedDialog) {
+        AlertDialog(
+            onDismissRequest = { showLocationPermissionDeniedDialog = false },
+            title = { Text("Location Permission Required") },
+            text = {
+                Text("Location permission was denied. Android prevents showing the prompt again. Please enable Location permission in App Settings, or enter a location manually.")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showLocationPermissionDeniedDialog = false
+                    openAppSettings(context)
+                }) {
+                    Text("Open Settings")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLocationPermissionDeniedDialog = false }) {
                     Text("Cancel")
                 }
             }

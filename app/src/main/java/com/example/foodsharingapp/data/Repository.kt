@@ -46,7 +46,7 @@ class Repository(private val db: DataDb) {
         description: String,
         tags: List<String>,
         newPlace: Place?,
-        clearPlace: Boolean = false
+        clearPlace: Boolean = (newPlace == null)
     ) = db.withTransaction {
         val placeId = when {
             clearPlace -> null
