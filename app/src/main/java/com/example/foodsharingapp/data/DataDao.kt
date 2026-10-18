@@ -43,7 +43,9 @@ interface MyFoodRecordDao {
     @Transaction
     @Query(
         """SELECT * FROM food_data
-       WHERE tag1 = :tag OR tag2 = :tag OR tag3 = :tag
+       WHERE tag1 LIKE '%' || :tag || '%' 
+          OR tag2 LIKE '%' || :tag || '%' 
+          OR tag3 LIKE '%' || :tag || '%'
        ORDER BY timeDate DESC"""
     )
     fun searchByTag(tag: String): Flow<List<FoodWithPlace>>

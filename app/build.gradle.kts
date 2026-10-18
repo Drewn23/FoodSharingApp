@@ -55,6 +55,8 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:${lifecycleVersion}")
     implementation("androidx.navigation:navigation-compose:${navVersion}")
     implementation("androidx.compose.material:material-icons-core:${iconVersion}")
+    implementation("io.coil-kt.coil3:coil-compose:3.1.0")
+    implementation("com.google.android.gms:play-services-location:21.3.0")
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)

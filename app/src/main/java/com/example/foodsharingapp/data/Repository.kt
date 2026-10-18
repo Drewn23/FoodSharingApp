@@ -65,6 +65,7 @@ class Repository(private val db: DataDb) {
             existing.copy(
                 photo = photo,
                 description = description,
+                timeDate = System.currentTimeMillis(), // Update date on update/edit
                 tag1 = t.getOrNull(0),
                 tag2 = t.getOrNull(1),
                 tag3 = t.getOrNull(2),
@@ -84,7 +85,7 @@ class Repository(private val db: DataDb) {
     suspend fun recordShare(foodId: Long, shareAt: Long = System.currentTimeMillis()): Long =
         shareDao.insert(ShareRecord(foodId = foodId, shareAt = shareAt))
 
-    private fun cleanTag(raw: String): String = raw.trim().removePrefix("@").lowercase()
+    private fun cleanTag(raw: String): String = raw.trim().removePrefix("@").removePrefix("#").lowercase()
     private fun cleanTags(raw: List<String>): List<String> =
         raw.map { cleanTag(it) }.filter { it.isNotEmpty() }.distinct().take(3)
 }

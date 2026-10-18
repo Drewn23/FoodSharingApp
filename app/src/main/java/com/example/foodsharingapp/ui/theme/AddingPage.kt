@@ -1,0 +1,511 @@
+package com.example.foodsharingapp.ui.theme
+
+import android.Manifest
+import android.app.Activity
+import android.content.Context
+import android.content.pm.ActivityInfo
+import android.graphics.Bitmap
+import android.location.Geocoder
+import android.location.Location
+import android.net.Uri
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
+import com.example.foodsharingapp.data.Place
+import com.google.android.gms.location.LocationServices
+import java.io.File
+import java.io.FileOutputStream
+import java.util.Locale
+
+val CyanButtonColor = Color(0xFF78D6DF)
+
+fun saveBitmapToCache(context: Context, bitmap: Bitmap): String {
+    val file = File(context.cacheDir, "camera_photo_${System.currentTimeMillis()}.jpg")
+    val out = FileOutputStream(file)
+    bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+    out.flush()
+    out.close()
+    return Uri.fromFile(file).toString()
+}
+
+fun fetchCurrentLocation(
+    context: Context,
+    onLocationFetched: (name: String, lat: Double, lng: Double) -> Unit
+) {
+    val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+    try {
+        fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
+            if (location != null) {
+                val geocoder = Geocoder(context, Locale.getDefault())
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        geocoder.getFromLocation(location.latitude, location.longitude, 1) { addresses ->
+                            val address = addresses.firstOrNull()
+                            val name = address?.locality ?: address?.featureName ?: "Location (${location.latitude.toString().take(6)}, ${location.longitude.toString().take(6)})"
+                            onLocationFetched(name, location.latitude, location.longitude)
+                        }
+                    } else {
+                        @Suppress("DEPRECATION")
+                        val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
+                        val address = addresses?.firstOrNull()
+                        val name = address?.locality ?: address?.featureName ?: "Location (${location.latitude.toString().take(6)}, ${location.longitude.toString().take(6)})"
+                        onLocationFetched(name, location.latitude, location.longitude)
+                    }
+                } catch (_: Exception) {
+                    onLocationFetched("Location (${location.latitude.toString().take(6)}, ${location.longitude.toString().take(6)})", location.latitude, location.longitude)
+                }
+            } else {
+                onLocationFetched("Location (Captured)", 0.0, 0.0)
+            }
+        }.addOnFailureListener {
+            onLocationFetched("Location (Captured)", 0.0, 0.0)
+        }
+    } catch (_: SecurityException) {
+        onLocationFetched("Location (Captured)", 0.0, 0.0)
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+//Must not be rotatable
+fun AddingPage(
+    initialPhoto: String = "",
+    initialDescription: String = "",
+    initialTags: List<String> = emptyList(),
+    initialPlace: Place? = null,
+    onSaveClick: (photo: String, description: String, tags: List<String>, place: Place?) -> Unit = { _, _, _, _ -> },
+    onCancelClick: () -> Unit = {}
+) {
+    //Lock the screen rotation at "portrait" for AddingPage only
+    val context = LocalContext.current
+    DisposableEffect(Unit) {
+        val activity = context as? Activity
+        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        onDispose {
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
+    }
+
+    var photo by remember { mutableStateOf(initialPhoto) }
+    var description by remember { mutableStateOf(initialDescription) }
+    var tag1 by remember { mutableStateOf(initialTags.getOrNull(0) ?: "") }
+    var tag2 by remember { mutableStateOf(initialTags.getOrNull(1) ?: "") }
+    var tag3 by remember { mutableStateOf(initialTags.getOrNull(2) ?: "") }
+    var placeName by remember { mutableStateOf(initialPlace?.name ?: "") }
+    var showPhotoDialog by remember { mutableStateOf(false) }
+    var showTagDialog by remember { mutableStateOf(false) }
+    var showMapDialog by remember { mutableStateOf(false) }
+
+    // Launchers for gallery, camera, and location
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    it,
+                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch (_: Exception) {}
+            photo = it.toString()
+            showPhotoDialog = false
+        }
+    }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap: Bitmap? ->
+        bitmap?.let {
+            val uriStr = saveBitmapToCache(context, it)
+            photo = uriStr
+            showPhotoDialog = false
+        }
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            cameraLauncher.launch(null)
+        }
+    }
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (granted) {
+            fetchCurrentLocation(context) { name, _, _ ->
+                placeName = name
+                showMapDialog = false
+            }
+        }
+    }
+
+    val parsedTags = remember(tag1, tag2, tag3) {
+        listOf(tag1, tag2, tag3).map { it.trim() }.filter { it.isNotEmpty() }
+    }
+
+    val currentPlace = remember(placeName) {
+        if (placeName.isNotBlank()) Place(name = placeName, latitude = 0.0, longitude = 0.0) else null
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Top Right Save Button
+        // Become clickable when a picture is selected, that way errorMessage is not required
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.TopEnd
+        ) {
+            Text(
+                text = "Save",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Medium,
+                color = if (photo.isNotBlank()) Color.Black else Color.Gray,
+                modifier = Modifier
+                    .clickable(enabled = photo.isNotBlank()) {
+                        onSaveClick(photo, description, parsedTags, currentPlace)
+                    }
+                    .padding(8.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Large Box: Click to save a picture
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(240.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .background(CyanButtonColor)
+                .clickable { showPhotoDialog = true },
+            contentAlignment = Alignment.Center
+        ) {
+            if (photo.isBlank()) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "Click to save a picture",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Normal,
+                        color = Color.Black
+                    )
+                }
+            } else {
+                // Must be able to show the either picture that is saved in gallery
+                AsyncImage(
+                    model = photo,
+                    contentDescription = "Selected Picture",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Middle Row: Add tag & Add map buttons
+        //Must be inline with Picture box
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            // Add tag button, take 0.5f empty space
+            Box(
+                modifier = Modifier
+                    .size(width = 110.dp, height = 120.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(CyanButtonColor)
+                    .clickable { showTagDialog = true }
+                    .weight(0.5f),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = if (parsedTags.isEmpty()) "Add tag" else "Tags:\n${parsedTags.joinToString(", ")}",
+                    fontSize = 16.sp,
+                    textAlign = TextAlign.Center,
+                    color = Color.Black,
+                    modifier = Modifier.padding(4.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Add map button must take up 0.5f of space
+            Box(
+                modifier = Modifier
+                    .size(width = 110.dp, height = 120.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(CyanButtonColor)
+                    .clickable { showMapDialog = true }
+                    .weight(0.5f),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = if (placeName.isBlank()) "Add\nmap" else "Location:\n$placeName",
+                    fontSize = 16.sp,
+                    textAlign = TextAlign.Center,
+                    color = Color.Black,
+                    modifier = Modifier.padding(4.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Description Box must display "Description" as text before when entering Show what is entered instead
+        OutlinedTextField(
+            value = description,
+            onValueChange = { description = it },
+            placeholder = {
+                Text(
+                    text = "Put a Description!!",
+                    fontSize = 18.sp,
+                    color = Color.Black.copy(alpha = 0.7f),
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+            },
+            textStyle = TextStyle(
+                fontSize = 18.sp,
+                textAlign = TextAlign.Center,
+                color = Color.Black
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(110.dp)
+                .clip(RoundedCornerShape(20.dp))
+                .background(CyanButtonColor),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color.Transparent,
+                unfocusedBorderColor = Color.Transparent
+            )
+        )
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        // Cancel Button at bottom
+        Button(
+            onClick = onCancelClick,
+            shape = RoundedCornerShape(20.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = CyanButtonColor,
+                contentColor = Color.Black
+            ),
+            modifier = Modifier
+                .width(180.dp)
+                .height(50.dp)
+        ) {
+            Text(
+                text = "Cancel",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+
+    // Dialogs for user input, camera and map
+    if (showPhotoDialog) {
+        var tempPhoto by remember { mutableStateOf(photo) }
+        AlertDialog(
+            onDismissRequest = { showPhotoDialog = false },
+            title = { Text("Insert Picture") },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Button(
+                        onClick = { galleryLauncher.launch("image/*") },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = CyanButtonColor, contentColor = Color.Black)
+                    ) {
+                        Text("Pick from Gallery")
+                    }
+
+                    Button(
+                        onClick = {
+                            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = CyanButtonColor, contentColor = Color.Black)
+                    ) {
+                        Text("Take Photo (Camera)")
+                    }
+
+                    OutlinedTextField(
+                        value = tempPhoto,
+                        onValueChange = { tempPhoto = it },
+                        placeholder = { Text("Or enter photo URI") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (tempPhoto.isNotBlank()) {
+                        photo = tempPhoto
+                    }
+                    showPhotoDialog = false
+                }) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPhotoDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showTagDialog) {
+        var tempTag1 by remember { mutableStateOf(tag1) }
+        var tempTag2 by remember { mutableStateOf(tag2) }
+        var tempTag3 by remember { mutableStateOf(tag3) }
+
+        AlertDialog(
+            onDismissRequest = { showTagDialog = false },
+            title = { Text("Add Tags (Up to 3)") },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedTextField(
+                        value = tempTag1,
+                        onValueChange = { tempTag1 = it },
+                        placeholder = { Text("Tag 1 (e.g. Breakfast)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = tempTag2,
+                        onValueChange = { tempTag2 = it },
+                        placeholder = { Text("Tag 2 (e.g. Yum)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = tempTag3,
+                        onValueChange = { tempTag3 = it },
+                        placeholder = { Text("Tag 3 (e.g. Healthy)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    tag1 = tempTag1
+                    tag2 = tempTag2
+                    tag3 = tempTag3
+                    showTagDialog = false
+                }) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTagDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showMapDialog) {
+        var tempPlace by remember { mutableStateOf(placeName) }
+        AlertDialog(
+            onDismissRequest = { showMapDialog = false },
+            title = { Text("Add Map Location") },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            locationPermissionLauncher.launch(
+                                arrayOf(
+                                    Manifest.permission.ACCESS_FINE_LOCATION,
+                                    Manifest.permission.ACCESS_COARSE_LOCATION
+                                )
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = CyanButtonColor, contentColor = Color.Black)
+                    ) {
+                        Text("Use Device Location")
+                    }
+
+                    OutlinedTextField(
+                        value = tempPlace,
+                        onValueChange = { tempPlace = it },
+                        placeholder = { Text("Or enter location name (e.g. Central Mall)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    placeName = tempPlace
+                    showMapDialog = false
+                }) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showMapDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+}
