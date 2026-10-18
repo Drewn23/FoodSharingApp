@@ -1,6 +1,7 @@
 package com.example.foodsharingapp.ui.theme
 
 import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -140,11 +141,18 @@ fun AppMenu(
 
             // Share Bottom Sheet Popup Overlay
             sharingItem?.let { item ->
-                val shareLink = "http://foodsharingapp.com/share/${item.food.id}"
+                val encodedDesc = Uri.encode(item.food.description)
+                val encodedPhoto = Uri.encode(item.food.photo)
+                val encodedTag1 = Uri.encode(item.food.tag1 ?: "")
+                val encodedTag2 = Uri.encode(item.food.tag2 ?: "")
+                val encodedTag3 = Uri.encode(item.food.tag3 ?: "")
+                val encodedPlace = Uri.encode(item.place?.name ?: "")
+
+                val shareLink = "http://foodsharingapp.com/share?desc=$encodedDesc&photo=$encodedPhoto&tag1=$encodedTag1&tag2=$encodedTag2&tag3=$encodedTag3&place=$encodedPlace"
                 val shareText = "Check out this food: ${item.food.description.ifEmpty { "Food Entry #${item.food.id}" }} - $shareLink"
 
                 ShareBottomSheet(
-                    item = item,
+                    shareLink = shareLink,
                     onDismiss = { sharingItem = null },
                     onCopyLink = {
                         clipboardManager.setText(AnnotatedString(shareLink))
@@ -168,13 +176,11 @@ fun AppMenu(
 
 @Composable
 fun ShareBottomSheet(
-    item: FoodWithPlace,
+    shareLink: String,
     onDismiss: () -> Unit,
     onCopyLink: () -> Unit,
     onShareNormal: () -> Unit
 ) {
-    val shareLink = "http://foodsharingapp.com/share/${item.food.id}"
-
     Box(
         modifier = Modifier
             .fillMaxSize()
