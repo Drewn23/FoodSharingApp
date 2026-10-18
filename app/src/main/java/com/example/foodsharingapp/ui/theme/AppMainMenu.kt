@@ -1,5 +1,8 @@
 package com.example.foodsharingapp.ui.theme
 
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -37,12 +40,19 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -74,6 +84,9 @@ fun AppMenu(
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    var sharingItem by remember { mutableStateOf<FoodWithPlace?>(null) }
+    val clipboardManager = LocalClipboardManager.current
+    val context = LocalContext.current
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -107,7 +120,8 @@ fun AppMenu(
                     foods = foods,
                     searchQuery = searchQuery,
                     onSearchChange = onSearchChange,
-                    onItemClick = onItemClick
+                    onItemClick = onItemClick,
+                    onShareClick = { item -> sharingItem = item }
                 )
             }
 
@@ -123,6 +137,140 @@ fun AppMenu(
                     imageVector = Icons.Default.Add,
                     contentDescription = "Add Food"
                 )
+            }
+
+            // Share Bottom Sheet Popup Overlay
+            sharingItem?.let { item ->
+                val encodedDesc = Uri.encode(item.food.description)
+                val encodedPhoto = Uri.encode(item.food.photo)
+                val encodedTag1 = Uri.encode(item.food.tag1 ?: "")
+                val encodedTag2 = Uri.encode(item.food.tag2 ?: "")
+                val encodedTag3 = Uri.encode(item.food.tag3 ?: "")
+                val encodedPlace = Uri.encode(item.place?.name ?: "")
+
+                val shareLink = "http://foodsharingapp.com/share?desc=$encodedDesc&photo=$encodedPhoto&tag1=$encodedTag1&tag2=$encodedTag2&tag3=$encodedTag3&place=$encodedPlace"
+                val shareText = "Check out this food: ${item.food.description.ifEmpty { "Food Entry #${item.food.id}" }} - $shareLink"
+
+                ShareBottomSheet(
+                    shareLink = shareLink,
+                    onDismiss = { sharingItem = null },
+                    onCopyLink = {
+                        clipboardManager.setText(AnnotatedString(shareLink))
+                        Toast.makeText(context, "Link copied to clipboard!", Toast.LENGTH_SHORT).show()
+                        sharingItem = null
+                    },
+                    onShareNormal = {
+                        val intent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, shareText)
+                        }
+                        val chooser = Intent.createChooser(intent, "Share food record via")
+                        context.startActivity(chooser)
+                        sharingItem = null
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ShareBottomSheet(
+    shareLink: String,
+    onDismiss: () -> Unit,
+    onCopyLink: () -> Unit,
+    onShareNormal: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.4f))
+            .clickable(onClick = onDismiss),
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                .background(Color.White)
+                .clickable(enabled = false) {}
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            // Link box preview
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFFEFEFEF))
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Share,
+                    contentDescription = "Link",
+                    tint = Color.DarkGray,
+                    modifier = Modifier.size(20.dp)
+                )
+                Text(
+                    text = shareLink,
+                    color = Color.DarkGray,
+                    fontSize = 14.sp,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            // Options Row (Copy link & Share)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceAround,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable(onClick = onCopyLink)
+                        .padding(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Share,
+                        contentDescription = "Copy link",
+                        tint = Color.Black,
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Copy link",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.Black
+                    )
+                }
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable(onClick = onShareNormal)
+                        .padding(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Share,
+                        contentDescription = "Share",
+                        tint = Color.Black,
+                        modifier = Modifier.size(28.dp)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Share",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.Black
+                    )
+                }
             }
         }
     }
@@ -147,9 +295,7 @@ fun AppNavigationDrawerContent(
 
             NavigationDrawerItem(
                 label = {
-                    Text("Settings",
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text("Settings", fontWeight = FontWeight.Bold)
                 },
                 selected = false,
                 onClick = onSettingsClick,
@@ -164,9 +310,7 @@ fun AppNavigationDrawerContent(
 
             NavigationDrawerItem(
                 label = {
-                    Text("Logout",
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text("Logout", fontWeight = FontWeight.Bold)
                 },
                 selected = false,
                 onClick = onLogoutClick,
@@ -186,7 +330,8 @@ fun AppMenuContent(
     foods: List<FoodWithPlace>,
     searchQuery: String,
     onSearchChange: (String) -> Unit,
-    onItemClick: (FoodWithPlace) -> Unit
+    onItemClick: (FoodWithPlace) -> Unit,
+    onShareClick: (FoodWithPlace) -> Unit
 ) {
     Column(
         modifier = modifier.fillMaxSize()
@@ -214,7 +359,8 @@ fun AppMenuContent(
                 items(foods) { item ->
                     FoodItemCard(
                         item = item,
-                        onItemClick = { onItemClick(item) }
+                        onItemClick = { onItemClick(item) },
+                        onShareClick = { onShareClick(item) }
                     )
                 }
             }
