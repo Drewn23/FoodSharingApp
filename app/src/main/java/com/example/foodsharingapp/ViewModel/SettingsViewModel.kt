@@ -10,6 +10,9 @@ import kotlinx.coroutines.flow.WhileSubscribed
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+// exposes saved preferences(theme, camera, map) as observable state
+// sends preference changes to repository
+
 class SettingsViewModel(private val settingsRepo: SettingsRepository) : ViewModel() {
     val theme: StateFlow<AppTheme> = settingsRepo.theme
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppTheme.PEACH)

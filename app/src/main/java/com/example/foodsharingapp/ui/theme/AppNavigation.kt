@@ -15,6 +15,10 @@ import com.example.foodsharingapp.data.SettingsRepository
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 
+// screen navigation
+// passes the selected food id to the editing screen
+// so it can load the correct record
+
 @Serializable
 object Login
 

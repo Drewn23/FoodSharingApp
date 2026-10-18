@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModelProvider
 import com.example.foodsharingapp.data.Repository
 import com.example.foodsharingapp.data.SettingsRepository
 
+// creates viewmodel and supplies their repository dependencies
+
 class ViewModelFactory(
     private val repo: Repository,
     private val settings: SettingsRepository

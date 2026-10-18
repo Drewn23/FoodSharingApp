@@ -55,6 +55,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+// Displays saved food entries and main diary interface
+// provides navigation, search and actions for each entry
+
 private fun formatDate(timeMillis: Long): String {
     val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
     return sdf.format(Date(timeMillis))

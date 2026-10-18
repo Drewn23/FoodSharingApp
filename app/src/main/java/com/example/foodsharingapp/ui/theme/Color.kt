@@ -2,6 +2,7 @@ package com.example.foodsharingapp.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
+// defines color constant for app's themes
 // Purple
 val PurplePrimary = Color(0xFF6750A4)
 val PurpleContainer = Color(0xFFEADDFF)

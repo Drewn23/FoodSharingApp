@@ -6,7 +6,7 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 // the entity
 
-// stores location
+// stores location or place name with latitude and longitude
 @Entity(tableName = "places")
 data class Place(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -16,6 +16,7 @@ data class Place(
 )
 
 // My own diary record
+// contain photo path, description, time, tags and place
 @Entity(
     tableName = "food_data",
     foreignKeys = [ForeignKey(

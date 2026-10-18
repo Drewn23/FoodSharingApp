@@ -5,6 +5,8 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
+// Configures the local Room database and connects the entity classes and  DAO interfaces
+
 @Database(
     entities = [Place::class, MyFoodRecord::class, ShareRecord::class],
     version = 2,

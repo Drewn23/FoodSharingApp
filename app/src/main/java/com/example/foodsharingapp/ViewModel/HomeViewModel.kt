@@ -13,6 +13,10 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+//manages the home screen's food data and search state
+//sends food operations to repository using stateflow
+// exposes observable state for the UI to collect
+
 class HomeViewModel(private val repo: Repository) : ViewModel() {
 
     private val _searchText = MutableStateFlow("")
@@ -23,10 +27,13 @@ class HomeViewModel(private val repo: Repository) : ViewModel() {
         .flatMapLatest { q -> if (q.isBlank()) repo.allFood else repo.searchByTag(q) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    // updates the search text
     fun onSearchChange(text: String) { _searchText.value = text }
 
+    // request deletion
     fun delete(item: FoodWithPlace) = viewModelScope.launch { repo.deleteFood(item.food) }
 
+    // requests saving
     fun saveFood(
         photo: String,
         description: String,
@@ -36,6 +43,7 @@ class HomeViewModel(private val repo: Repository) : ViewModel() {
         repo.saveFood(photo, description, tags, place)
     }
 
+    // requests updating
     fun updateFood(
         existing: com.example.foodsharingapp.data.MyFoodRecord,
         photo: String,

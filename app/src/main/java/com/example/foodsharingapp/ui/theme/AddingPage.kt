@@ -73,6 +73,10 @@ import java.net.URL
 import java.util.Locale
 import kotlin.coroutines.resume
 
+// provides the form for creating a new food entry
+// collects the photo, description, tags and place
+// send the completed entry to viewmodel or repository
+
 val CyanButtonColor = Color(0xFF78D6DF)
 
 fun openAppSettings(context: Context) {

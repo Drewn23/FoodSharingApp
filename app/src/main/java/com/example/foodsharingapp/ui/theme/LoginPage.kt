@@ -24,6 +24,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+// builds the opening screen and its login style interface
+
 @Preview
 @Composable
 fun LoginPage(

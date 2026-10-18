@@ -13,6 +13,10 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import java.io.IOException
 
+// defines the theme option
+// read and write preferences
+// Persists theme selection and camera/map display settings.
+
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
 enum class AppTheme(val value: String) {

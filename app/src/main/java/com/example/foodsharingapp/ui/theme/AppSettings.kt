@@ -51,7 +51,9 @@ import androidx.core.content.ContextCompat
 import com.example.foodsharingapp.ViewModel.SettingsViewModel
 import com.example.foodsharingapp.data.AppTheme
 
-// Connects the screen to its ViewModel. The only place that touches the ViewModel.
+// Display app preferences and forwards changes
+// Connects the screen to its ViewModel.
+// The only place that touches the ViewModel.
 @Composable
 fun SettingsScreen(vm: SettingsViewModel, onBack: () -> Unit) {
     val theme by vm.theme.collectAsState()
