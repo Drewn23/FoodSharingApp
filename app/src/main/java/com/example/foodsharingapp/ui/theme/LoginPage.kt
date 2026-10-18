@@ -67,7 +67,7 @@ fun LoginCard(){
             fontSize = 32.sp,
             lineHeight = 40.sp,
             fontWeight = FontWeight.Bold,
-            color = Color.White,
+            color = Color.Black,
             textAlign = TextAlign.Center,
             modifier = Modifier
                 .background(color = MaterialTheme.colorScheme.primaryContainer)
