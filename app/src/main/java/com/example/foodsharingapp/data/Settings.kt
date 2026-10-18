@@ -16,7 +16,7 @@ import java.io.IOException
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
 enum class AppTheme(val value: String) {
-    RED("red"),
+    PURPLE("purple"),
     PEACH("peach"),
     BLUE("blue")
 }

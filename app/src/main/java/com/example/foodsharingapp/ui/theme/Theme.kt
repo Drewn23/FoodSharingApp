@@ -12,19 +12,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import com.example.foodsharingapp.data.AppTheme
 
-private val RedColorScheme = lightColorScheme(
-    primary = RedPrimary,
-    primaryContainer = RedContainer,
-    onPrimaryContainer = RedOnContainer,
-    secondary = RedSecondary,
-    secondaryContainer = RedContainer,
-    background = RedBackground,
-    onBackground = RedOnBackground,
-    surface = RedBackground,
-    onSurface = RedOnBackground,
-    surfaceVariant = RedContainer,
-    onSurfaceVariant = RedSecondary,
-    outline = RedSecondary
+private val PurpleColorScheme = lightColorScheme(
+    primary = PurplePrimary,
+    primaryContainer = PurpleContainer,
+    onPrimaryContainer = PurpleOnContainer,
+    secondary = PurpleSecondary,
+    secondaryContainer = PurpleContainer,
+    background = PurpleBackground,
+    onBackground = PurpleOnBackground,
+    surface = PurpleBackground,
+    onSurface = PurpleOnBackground,
+    surfaceVariant = PurpleContainer,
+    onSurfaceVariant = PurpleSecondary,
+    outline = PurpleSecondary
 )
 
 private val PeachColorScheme = lightColorScheme(
@@ -63,7 +63,7 @@ fun FoodSharingAppTheme(
     content: @Composable () -> Unit
 ) {
     val colorScheme = when (appTheme) {
-        AppTheme.RED -> RedColorScheme
+        AppTheme.PURPLE -> PurpleColorScheme
         AppTheme.PEACH -> PeachColorScheme
         AppTheme.BLUE -> BlueColorScheme
     }

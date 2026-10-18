@@ -2,14 +2,13 @@ package com.example.foodsharingapp.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-
-// Red
-val RedPrimary = Color(0xFFB3261E)
-val RedContainer = Color(0xFFFFDAD6)
-val RedOnContainer = Color(0xFF410002)
-val RedSecondary = Color(0xFF775652)
-val RedBackground = Color(0xFFFFFBFF)
-val RedOnBackground = Color(0xFF201A19)
+// Purple
+val PurplePrimary = Color(0xFF6750A4)
+val PurpleContainer = Color(0xFFEADDFF)
+val PurpleOnContainer = Color(0xFF21005D)
+val PurpleSecondary = Color(0xFF625B71)
+val PurpleBackground = Color(0xFFFFFBFE)
+val PurpleOnBackground = Color(0xFF1C1B1F)
 
 // Peach
 val PeachPrimary = Color(0xFF8F4C28)

@@ -143,7 +143,7 @@ fun ThemeSetting(selected: AppTheme, onSelect: (AppTheme) -> Unit) {
     ) {
         Text("Theme", style = MaterialTheme.typography.titleMedium)
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            ThemeSwatch(AppTheme.RED, RedPrimary, "Red", selected, onSelect)
+            ThemeSwatch(AppTheme.PURPLE, PurplePrimary, "Purple", selected, onSelect)
             ThemeSwatch(AppTheme.PEACH, PeachContainer, "Peach", selected, onSelect)
             ThemeSwatch(AppTheme.BLUE, BluePrimary, "Blue", selected, onSelect)
         }
