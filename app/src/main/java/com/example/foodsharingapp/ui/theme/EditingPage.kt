@@ -54,7 +54,7 @@ import com.example.foodsharingapp.data.Place
 
 @Preview(showBackground = true)
 @Composable
-fun EdittingPage(
+fun EditingPage(
     initialPhoto: String = "",
     initialDescription: String = "",
     initialTags: List<String> = emptyList(),
