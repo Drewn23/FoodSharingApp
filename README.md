@@ -38,7 +38,7 @@ A Meal has many Shares (one-to-many).
 
 ### 4) Out-of-scope
 1. User accounts and authentication(no username, password and login)
-2. Add friends
+2. Sharing Feature
 
 ## Build steps
 - **Android Studio version**: - Android Studio Rabbit 1 | 2026.2.1 (Build #AI-262.9437.185.2621.16467767)
@@ -78,4 +78,5 @@ Permissions the app may ask for while running:
 - Map: On or Off
 
 ### Sharing
-
+Current sharing feature will produce a temporary link.
+Temporary link only contains database information.
