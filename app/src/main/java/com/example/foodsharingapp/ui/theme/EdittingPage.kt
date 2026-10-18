@@ -48,21 +48,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.example.foodsharingapp.data.Place
-import java.io.File
-import java.io.FileOutputStream
-
-private fun saveBitmapToCacheEditing(context: android.content.Context, bitmap: Bitmap): String {
-    val file = File(context.cacheDir, "camera_photo_edit_${System.currentTimeMillis()}.jpg")
-    val out = FileOutputStream(file)
-    bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
-    out.flush()
-    out.close()
-    return Uri.fromFile(file).toString()
-}
 
 @Preview(showBackground = true)
 @Composable
-fun EditingPage(
+fun EdittingPage(
     initialPhoto: String = "",
     initialDescription: String = "",
     initialTags: List<String> = emptyList(),
@@ -110,7 +99,7 @@ fun EditingPage(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap: Bitmap? ->
         bitmap?.let {
-            val uriStr = saveBitmapToCacheEditing(context, it)
+            val uriStr = saveBitmapToCache(context, it)
             photo = uriStr
             showPhotoDialog = false
         }
@@ -121,6 +110,19 @@ fun EditingPage(
     ) { isGranted: Boolean ->
         if (isGranted) {
             cameraLauncher.launch(null)
+        }
+    }
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (granted) {
+            fetchCurrentLocation(context) { name, _, _ ->
+                placeName = name
+                showMapDialog = false
+            }
         }
     }
 
@@ -448,11 +450,31 @@ fun EditingPage(
             onDismissRequest = { showMapDialog = false },
             title = { Text("Edit Map Location") },
             text = {
-                OutlinedTextField(
-                    value = tempPlace,
-                    onValueChange = { tempPlace = it },
-                    placeholder = { Text("Enter location name (e.g. Central Mall)") }
-                )
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            locationPermissionLauncher.launch(
+                                arrayOf(
+                                    Manifest.permission.ACCESS_FINE_LOCATION,
+                                    Manifest.permission.ACCESS_COARSE_LOCATION
+                                )
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = CyanButtonColor, contentColor = Color.Black)
+                    ) {
+                        Text("Use Device Location")
+                    }
+
+                    OutlinedTextField(
+                        value = tempPlace,
+                        onValueChange = { tempPlace = it },
+                        placeholder = { Text("Or enter location name (e.g. Central Mall)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             },
             confirmButton = {
                 TextButton(onClick = {

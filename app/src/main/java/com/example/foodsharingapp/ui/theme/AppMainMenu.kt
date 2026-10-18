@@ -330,7 +330,7 @@ fun InfoTable(
 
     val tags = item?.let {
         listOfNotNull(it.food.tag1, it.food.tag2, it.food.tag3)
-            .filter { tag -> !tag.isNullOrBlank() }
+            .filter { tag -> tag.isNotBlank() }
             .joinToString(" ") { tag -> "#$tag" }
     } ?: ""
 

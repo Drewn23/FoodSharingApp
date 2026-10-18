@@ -2,9 +2,13 @@ package com.example.foodsharingapp.ui.theme
 
 import android.Manifest
 import android.app.Activity
+import android.content.Context
 import android.content.pm.ActivityInfo
 import android.graphics.Bitmap
+import android.location.Geocoder
+import android.location.Location
 import android.net.Uri
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -48,18 +52,57 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.example.foodsharingapp.data.Place
+import com.google.android.gms.location.LocationServices
 import java.io.File
 import java.io.FileOutputStream
+import java.util.Locale
 
 val CyanButtonColor = Color(0xFF78D6DF)
 
-private fun saveBitmapToCache(context: android.content.Context, bitmap: Bitmap): String {
+fun saveBitmapToCache(context: Context, bitmap: Bitmap): String {
     val file = File(context.cacheDir, "camera_photo_${System.currentTimeMillis()}.jpg")
     val out = FileOutputStream(file)
     bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
     out.flush()
     out.close()
     return Uri.fromFile(file).toString()
+}
+
+fun fetchCurrentLocation(
+    context: Context,
+    onLocationFetched: (name: String, lat: Double, lng: Double) -> Unit
+) {
+    val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+    try {
+        fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
+            if (location != null) {
+                val geocoder = Geocoder(context, Locale.getDefault())
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        geocoder.getFromLocation(location.latitude, location.longitude, 1) { addresses ->
+                            val address = addresses.firstOrNull()
+                            val name = address?.locality ?: address?.featureName ?: "Location (${location.latitude.toString().take(6)}, ${location.longitude.toString().take(6)})"
+                            onLocationFetched(name, location.latitude, location.longitude)
+                        }
+                    } else {
+                        @Suppress("DEPRECATION")
+                        val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
+                        val address = addresses?.firstOrNull()
+                        val name = address?.locality ?: address?.featureName ?: "Location (${location.latitude.toString().take(6)}, ${location.longitude.toString().take(6)})"
+                        onLocationFetched(name, location.latitude, location.longitude)
+                    }
+                } catch (_: Exception) {
+                    onLocationFetched("Location (${location.latitude.toString().take(6)}, ${location.longitude.toString().take(6)})", location.latitude, location.longitude)
+                }
+            } else {
+                onLocationFetched("Location (Captured)", 0.0, 0.0)
+            }
+        }.addOnFailureListener {
+            onLocationFetched("Location (Captured)", 0.0, 0.0)
+        }
+    } catch (_: SecurityException) {
+        onLocationFetched("Location (Captured)", 0.0, 0.0)
+    }
 }
 
 @Preview(showBackground = true)
@@ -93,7 +136,7 @@ fun AddingPage(
     var showTagDialog by remember { mutableStateOf(false) }
     var showMapDialog by remember { mutableStateOf(false) }
 
-    // Launchers for gallery and camera
+    // Launchers for gallery, camera, and location
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -124,6 +167,19 @@ fun AddingPage(
     ) { isGranted: Boolean ->
         if (isGranted) {
             cameraLauncher.launch(null)
+        }
+    }
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (granted) {
+            fetchCurrentLocation(context) { name, _, _ ->
+                placeName = name
+                showMapDialog = false
+            }
         }
     }
 
@@ -251,7 +307,7 @@ fun AddingPage(
             onValueChange = { description = it },
             placeholder = {
                 Text(
-                    text = "Description",
+                    text = "Put a Description!!",
                     fontSize = 18.sp,
                     color = Color.Black.copy(alpha = 0.7f),
                     modifier = Modifier.fillMaxWidth(),
@@ -411,11 +467,31 @@ fun AddingPage(
             onDismissRequest = { showMapDialog = false },
             title = { Text("Add Map Location") },
             text = {
-                OutlinedTextField(
-                    value = tempPlace,
-                    onValueChange = { tempPlace = it },
-                    placeholder = { Text("Enter location name (e.g. Central Mall)") }
-                )
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Button(
+                        onClick = {
+                            locationPermissionLauncher.launch(
+                                arrayOf(
+                                    Manifest.permission.ACCESS_FINE_LOCATION,
+                                    Manifest.permission.ACCESS_COARSE_LOCATION
+                                )
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = CyanButtonColor, contentColor = Color.Black)
+                    ) {
+                        Text("Use Device Location")
+                    }
+
+                    OutlinedTextField(
+                        value = tempPlace,
+                        onValueChange = { tempPlace = it },
+                        placeholder = { Text("Or enter location name (e.g. Central Mall)") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             },
             confirmButton = {
                 TextButton(onClick = {

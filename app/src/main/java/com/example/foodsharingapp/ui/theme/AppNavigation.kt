@@ -9,7 +9,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.example.foodsharingapp.ViewModel.HomeViewModel
-import com.example.foodsharingapp.data.FoodWithPlace
 import com.example.foodsharingapp.data.Place
 import com.example.foodsharingapp.data.SettingsRepository
 import kotlinx.coroutines.launch
@@ -106,7 +105,7 @@ fun AppNav(
 
             val existingItem = foods.find { it.food.id == args.foodId }
 
-            EditingPage(
+            EdittingPage(
                 initialPhoto = args.photo,
                 initialDescription = args.description,
                 initialTags = initialTags,
