@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
 
 // data access object
 
-
+//retrieves places and removes unused places
 @Dao
 interface PlaceDao {
     @Query("DELETE FROM places WHERE id NOT IN (SELECT placeId FROM food_data WHERE placeId IS NOT NULL)")
@@ -26,6 +26,7 @@ interface PlaceDao {
     @Update suspend fun update(place: Place)
 }
 
+// retrieves, inserts, updates, deletes and searches food records
 @Dao
 interface MyFoodRecordDao {
     @Insert suspend fun insert(food: MyFoodRecord): Long
@@ -51,6 +52,7 @@ interface MyFoodRecordDao {
     fun searchByTag(tag: String): Flow<List<FoodWithPlace>>
 }
 
+// inserts and retrieves share records
 @Dao
 interface ShareRecordDao {
     @Insert suspend fun insert(share: ShareRecord): Long

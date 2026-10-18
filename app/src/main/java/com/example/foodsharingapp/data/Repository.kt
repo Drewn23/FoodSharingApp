@@ -4,7 +4,7 @@ import androidx.room.withTransaction
 import kotlinx.coroutines.flow.Flow
 
 // save logic in repository
-
+// central data-access layer for food entries, place, and share records
 class Repository(private val db: DataDb) {
     private val foodDao = db.foodDao()
     private val placeDao = db.placeDao()
@@ -15,6 +15,8 @@ class Repository(private val db: DataDb) {
 
     fun getFood(id: Long): Flow<FoodWithPlace?> = foodDao.getById(id)
     fun getSharesForFood(foodId: Long): Flow<List<ShareRecord>> = shareDao.getForFood(foodId)
+
+    // searches food entries by tag
     fun searchByTag(tag: String): Flow<List<FoodWithPlace>> =
         foodDao.searchByTag(cleanTag(tag))
 

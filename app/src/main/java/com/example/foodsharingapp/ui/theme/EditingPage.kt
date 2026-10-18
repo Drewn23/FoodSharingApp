@@ -59,6 +59,10 @@ import com.example.foodsharingapp.data.Place
 import kotlinx.coroutines.launch
 import java.util.Locale
 
+// Edits the existing entry selected from home screen
+// uses id to identify which record should be loaded
+// preserves entered form values when returning to home screen or screen rotation
+
 @Preview(showBackground = true)
 @Composable
 fun EditingPage(
