@@ -146,7 +146,11 @@ fun AppNavigationDrawerContent(
             Spacer(modifier = Modifier.height(12.dp))
 
             NavigationDrawerItem(
-                label = { Text("Settings") },
+                label = {
+                    Text("Settings",
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 selected = false,
                 onClick = onSettingsClick,
                 colors = NavigationDrawerItemDefaults.colors(
@@ -159,7 +163,11 @@ fun AppNavigationDrawerContent(
             Spacer(modifier = Modifier.weight(1f))
 
             NavigationDrawerItem(
-                label = { Text("Logout") },
+                label = {
+                    Text("Logout",
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 selected = false,
                 onClick = onLogoutClick,
                 colors = NavigationDrawerItemDefaults.colors(
