@@ -1,5 +1,10 @@
 package com.example.foodsharingapp.ui.theme
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -35,12 +40,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import com.example.foodsharingapp.ViewModel.SettingsViewModel
 import com.example.foodsharingapp.data.AppTheme
 
@@ -172,11 +179,77 @@ private fun ThemeSwatch(
 // announces "Camera, switch, on" and the touch target is large.
 @Composable
 private fun SettingToggle(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    val context = LocalContext.current
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            onCheckedChange(true)
+        } else {
+            Toast.makeText(context, "Camera permission denied.", Toast.LENGTH_SHORT).show()
+            onCheckedChange(false)
+        }
+    }
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (granted) {
+            onCheckedChange(true)
+        } else {
+            Toast.makeText(context, "Location permission denied.", Toast.LENGTH_SHORT).show()
+            onCheckedChange(false)
+        }
+    }
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier
-            .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange)
+            .toggleable(
+                value = checked,
+                role = Role.Switch,
+                onValueChange = { newValue ->
+                    if (newValue) {
+                        if (label.equals("Camera", ignoreCase = true)) {
+                            val hasCam = ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.CAMERA
+                            ) == PackageManager.PERMISSION_GRANTED
+                            if (hasCam) {
+                                onCheckedChange(true)
+                            } else {
+                                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                            }
+                        } else if (label.equals("Map", ignoreCase = true)) {
+                            val hasFine = ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.ACCESS_FINE_LOCATION
+                            ) == PackageManager.PERMISSION_GRANTED
+                            val hasCoarse = ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.ACCESS_COARSE_LOCATION
+                            ) == PackageManager.PERMISSION_GRANTED
+                            if (hasFine || hasCoarse) {
+                                onCheckedChange(true)
+                            } else {
+                                locationPermissionLauncher.launch(
+                                    arrayOf(
+                                        Manifest.permission.ACCESS_FINE_LOCATION,
+                                        Manifest.permission.ACCESS_COARSE_LOCATION
+                                    )
+                                )
+                            }
+                        } else {
+                            onCheckedChange(true)
+                        }
+                    } else {
+                        onCheckedChange(false)
+                    }
+                }
+            )
             .padding(8.dp)
     ) {
         Text(label, style = MaterialTheme.typography.titleMedium)
@@ -208,10 +281,16 @@ private fun SlideSwitchVisual(checked: Boolean) {
             .clip(RoundedCornerShape(24.dp))
             .background(MaterialTheme.colorScheme.secondaryContainer)
             .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (checked) { thumb(); stateText() } else { stateText(); thumb() }
+        if (checked) {
+            stateText()
+            thumb()
+        } else {
+            thumb()
+            stateText()
+        }
     }
 }
 
