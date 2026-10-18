@@ -6,6 +6,7 @@ import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.location.Geocoder
+import android.location.Location
 import android.os.Build
 import android.net.Uri
 import android.widget.Toast
@@ -97,6 +98,7 @@ fun EditingPage(
     var isFetchingLocation by remember { mutableStateOf(false) }
     var locationStatusMessage by remember { mutableStateOf<String?>(null) }
     var locationFetchFailed by remember { mutableStateOf(false) }
+    var lastCapturedLocation by remember { mutableStateOf<Location?>(null) }
     val scope = rememberCoroutineScope()
 
     val fetchLocationAction = {
@@ -107,33 +109,17 @@ fun EditingPage(
             try {
                 val location = getDeviceLocation(context)
                 if (location != null) {
+                    lastCapturedLocation = location
                     locationStatusMessage = "Querying OpenStreetMap Nominatim..."
                     val place = reverseGeocodeNominatim(location.latitude, location.longitude)
                     if (place != null) {
                         placeName = place
-                        locationStatusMessage = "Success! Location retrieved via Nominatim."
+                        locationStatusMessage = "Success! Location retrieved."
                         locationFetchFailed = false
                         showMapDialog = false
                     } else {
-                        // Fallback to built-in Geocoder
-                        val geocoder = Geocoder(context, Locale.getDefault())
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            geocoder.getFromLocation(location.latitude, location.longitude, 1) { addresses ->
-                                val address = addresses.firstOrNull()
-                                placeName = address?.locality ?: address?.featureName ?: "Location (${location.latitude.toString().take(6)})"
-                                locationStatusMessage = "Success! Location retrieved (Geocoder fallback)."
-                                locationFetchFailed = false
-                                showMapDialog = false
-                            }
-                        } else {
-                            @Suppress("DEPRECATION")
-                            val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
-                            val address = addresses?.firstOrNull()
-                            placeName = address?.locality ?: address?.featureName ?: "Location (${location.latitude.toString().take(6)})"
-                            locationStatusMessage = "Success! Location retrieved."
-                            locationFetchFailed = false
-                            showMapDialog = false
-                        }
+                        locationFetchFailed = true
+                        locationStatusMessage = "Network request failed (No response)."
                     }
                 } else {
                     locationFetchFailed = true
@@ -141,9 +127,53 @@ fun EditingPage(
                 }
             } catch (_: Exception) {
                 locationFetchFailed = true
-                locationStatusMessage = "Network error / No internet connection. Please retry."
+                locationStatusMessage = "Network error / No internet connection. Please retry or use default method."
             } finally {
                 isFetchingLocation = false
+            }
+        }
+    }
+
+    val fallbackDefaultGeocoderAction = {
+        isFetchingLocation = true
+        locationFetchFailed = false
+        locationStatusMessage = "Using phone's default method (Geocoder)..."
+        scope.launch {
+            try {
+                val location = lastCapturedLocation ?: getDeviceLocation(context)
+                if (location != null) {
+                    lastCapturedLocation = location
+                    if (Geocoder.isPresent()) {
+                        val geocoder = Geocoder(context, Locale.getDefault())
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            geocoder.getFromLocation(location.latitude, location.longitude, 1) { addresses ->
+                                val address = addresses.firstOrNull()
+                                placeName = address?.locality ?: address?.featureName ?: "Location (${location.latitude.toString().take(6)})"
+                                isFetchingLocation = false
+                                showMapDialog = false
+                            }
+                        } else {
+                            @Suppress("DEPRECATION")
+                            val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
+                            val address = addresses?.firstOrNull()
+                            placeName = address?.locality ?: address?.featureName ?: "Location (${location.latitude.toString().take(6)})"
+                            isFetchingLocation = false
+                            showMapDialog = false
+                        }
+                    } else {
+                        placeName = "Location (${location.latitude.toString().take(6)}, ${location.longitude.toString().take(6)})"
+                        isFetchingLocation = false
+                        showMapDialog = false
+                    }
+                } else {
+                    isFetchingLocation = false
+                    locationFetchFailed = true
+                    locationStatusMessage = "Unable to get device location for default method."
+                }
+            } catch (_: Exception) {
+                isFetchingLocation = false
+                locationFetchFailed = true
+                locationStatusMessage = "Default geocoder method failed."
             }
         }
     }
@@ -563,7 +593,7 @@ fun EditingPage(
                     showMapDialog = false
                 }
             },
-            title = { Text("Edit Map Location (Nominatim)") },
+            title = { Text("Edit Map Location") },
             text = {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -601,17 +631,29 @@ fun EditingPage(
 
                         if (locationFetchFailed) {
                             Text(
-                                text = locationStatusMessage ?: "Failed to connect.",
+                                text = locationStatusMessage ?: "Nominatim network request failed.",
                                 color = Color.Red,
                                 textAlign = TextAlign.Center,
-                                fontSize = 14.sp
+                                fontSize = 13.sp
                             )
-                            Button(
-                                onClick = { fetchLocationAction() },
+                            Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800), contentColor = Color.White)
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Text("Retry Connection")
+                                Button(
+                                    onClick = { fetchLocationAction() },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800), contentColor = Color.White)
+                                ) {
+                                    Text("Retry")
+                                }
+                                Button(
+                                    onClick = { fallbackDefaultGeocoderAction() },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50), contentColor = Color.White)
+                                ) {
+                                    Text("Use Default Method")
+                                }
                             }
                         }
 

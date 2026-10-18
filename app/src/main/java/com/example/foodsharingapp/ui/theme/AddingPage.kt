@@ -123,7 +123,8 @@ suspend fun reverseGeocodeNominatim(lat: Double, lon: Double): String? = withCon
         val urlStr = "https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lon"
         val url = URL(urlStr)
         connection = url.openConnection() as HttpURLConnection
-        connection.setRequestProperty("User-Agent", "FoodSharingApp/1.0")
+        connection.setRequestProperty("User-Agent", "FoodSharingApp/1.0 (Android)")
+        connection.setRequestProperty("Accept-Language", "en")
         connection.connectTimeout = 5000
         connection.readTimeout = 5000
 
@@ -182,6 +183,7 @@ fun AddingPage(
     var isFetchingLocation by remember { mutableStateOf(false) }
     var locationStatusMessage by remember { mutableStateOf<String?>(null) }
     var locationFetchFailed by remember { mutableStateOf(false) }
+    var lastCapturedLocation by remember { mutableStateOf<Location?>(null) }
     val scope = rememberCoroutineScope()
 
     val fetchLocationAction = {
@@ -192,33 +194,17 @@ fun AddingPage(
             try {
                 val location = getDeviceLocation(context)
                 if (location != null) {
+                    lastCapturedLocation = location
                     locationStatusMessage = "Querying OpenStreetMap Nominatim..."
                     val place = reverseGeocodeNominatim(location.latitude, location.longitude)
                     if (place != null) {
                         placeName = place
-                        locationStatusMessage = "Success! Location retrieved via Nominatim."
+                        locationStatusMessage = "Success! Location retrieved."
                         locationFetchFailed = false
                         showMapDialog = false
                     } else {
-                        // Fallback to built-in Geocoder
-                        val geocoder = Geocoder(context, Locale.getDefault())
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            geocoder.getFromLocation(location.latitude, location.longitude, 1) { addresses ->
-                                val address = addresses.firstOrNull()
-                                placeName = address?.locality ?: address?.featureName ?: "Location (${location.latitude.toString().take(6)})"
-                                locationStatusMessage = "Success! Location retrieved (Geocoder fallback)."
-                                locationFetchFailed = false
-                                showMapDialog = false
-                            }
-                        } else {
-                            @Suppress("DEPRECATION")
-                            val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
-                            val address = addresses?.firstOrNull()
-                            placeName = address?.locality ?: address?.featureName ?: "Location (${location.latitude.toString().take(6)})"
-                            locationStatusMessage = "Success! Location retrieved."
-                            locationFetchFailed = false
-                            showMapDialog = false
-                        }
+                        locationFetchFailed = true
+                        locationStatusMessage = "Network request failed (No response)."
                     }
                 } else {
                     locationFetchFailed = true
@@ -226,9 +212,54 @@ fun AddingPage(
                 }
             } catch (_: Exception) {
                 locationFetchFailed = true
-                locationStatusMessage = "Network error / No internet connection. Please retry."
+                locationStatusMessage = "Network error / No internet connection. Please retry or use default method."
             } finally {
                 isFetchingLocation = false
+            }
+        }
+    }
+
+    val fallbackDefaultGeocoderAction = {
+        isFetchingLocation = true
+        locationFetchFailed = false
+        locationStatusMessage = "Using phone's default method (Geocoder)..."
+        scope.launch {
+            try {
+                val location = lastCapturedLocation ?: getDeviceLocation(context)
+                if (location != null) {
+                    lastCapturedLocation = location
+                    if (Geocoder.isPresent()) {
+                        val geocoder = Geocoder(context, Locale.getDefault())
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            geocoder.getFromLocation(location.latitude, location.longitude, 1) { addresses ->
+                                val address = addresses.firstOrNull()
+                                placeName = address?.locality ?: address?.featureName ?: "Location (${location.latitude.toString().take(6)})"
+                                isFetchingLocation = false
+                                showMapDialog = false
+                            }
+                        } else {
+                            @Suppress("DEPRECATION")
+                            val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
+                            val address = addresses?.firstOrNull()
+                            placeName = address?.locality ?: address?.featureName ?: "Location (${location.latitude.toString().take(6)})"
+                            isFetchingLocation = false
+                            showMapDialog = false
+                        }
+                    } else {
+                        // Geocoder not present on this device/emulator
+                        placeName = "Location (${location.latitude.toString().take(6)}, ${location.longitude.toString().take(6)})"
+                        isFetchingLocation = false
+                        showMapDialog = false
+                    }
+                } else {
+                    isFetchingLocation = false
+                    locationFetchFailed = true
+                    locationStatusMessage = "Unable to get device location for default method."
+                }
+            } catch (_: Exception) {
+                isFetchingLocation = false
+                locationFetchFailed = true
+                locationStatusMessage = "Default geocoder method failed."
             }
         }
     }
@@ -354,6 +385,7 @@ fun AddingPage(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
+            // Add tag button, take 0.5f empty space
             Box(
                 modifier = Modifier
                     .size(width = 110.dp, height = 120.dp)
@@ -373,6 +405,7 @@ fun AddingPage(
             }
             Spacer(modifier = Modifier.width(8.dp))
 
+            // Add map button must take up 0.5f of space
             Box(
                 modifier = Modifier
                     .size(width = 110.dp, height = 120.dp)
@@ -400,6 +433,7 @@ fun AddingPage(
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        // Description Box must display "Description" as text before when entering Show what is entered instead
         OutlinedTextField(
             value = description,
             onValueChange = { description = it },
@@ -430,6 +464,7 @@ fun AddingPage(
 
         Spacer(modifier = Modifier.weight(1f))
 
+        // Cancel Button at bottom
         Button(
             onClick = onCancelClick,
             shape = RoundedCornerShape(20.dp),
@@ -602,7 +637,7 @@ fun AddingPage(
                     showMapDialog = false
                 }
             },
-            title = { Text("Add Map Location (Nominatim)") },
+            title = { Text("Add Map Location") },
             text = {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -635,22 +670,34 @@ fun AddingPage(
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(containerColor = CyanButtonColor, contentColor = Color.Black)
                         ) {
-                            Text("Use Device Location (Nominatim)")
+                            Text("Use Device Location")
                         }
 
                         if (locationFetchFailed) {
                             Text(
-                                text = locationStatusMessage ?: "Failed to connect.",
+                                text = locationStatusMessage ?: "Nominatim network request failed.",
                                 color = Color.Red,
                                 textAlign = TextAlign.Center,
-                                fontSize = 14.sp
+                                fontSize = 13.sp
                             )
-                            Button(
-                                onClick = { fetchLocationAction() },
+                            Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800), contentColor = Color.White)
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Text("Retry Connection")
+                                Button(
+                                    onClick = { fetchLocationAction() },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800), contentColor = Color.White)
+                                ) {
+                                    Text("Retry")
+                                }
+                                Button(
+                                    onClick = { fallbackDefaultGeocoderAction() },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50), contentColor = Color.White)
+                                ) {
+                                    Text("Use Default Method")
+                                }
                             }
                         }
 
