@@ -59,8 +59,15 @@ import coil3.compose.AsyncImage
 import com.example.foodsharingapp.data.Place
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
+import java.net.HttpURLConnection
+import java.net.URL
 import java.util.Locale
 
 val CyanButtonColor = Color(0xFF78D6DF)
@@ -89,23 +96,51 @@ fun fetchCurrentLocation(
     val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
 
     fun geocodeLocation(location: Location) {
-        val geocoder = Geocoder(context, Locale.getDefault())
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                geocoder.getFromLocation(location.latitude, location.longitude, 1) { addresses ->
-                    val address = addresses.firstOrNull()
-                    val name = address?.locality ?: address?.featureName ?: "Location (${location.latitude.toString().take(6)}, ${location.longitude.toString().take(6)})"
-                    onLocationFetched(name, location.latitude, location.longitude)
+        CoroutineScope(Dispatchers.IO).launch {
+            // Try Nominatim API first (Internet feature)
+            try {
+                val urlStr = "https://nominatim.openstreetmap.org/reverse?format=json&lat=${location.latitude}&lon=${location.longitude}"
+                val url = URL(urlStr)
+                val connection = url.openConnection() as HttpURLConnection
+                connection.setRequestProperty("User-Agent", "FoodSharingApp/1.0")
+                connection.connectTimeout = 4000
+                connection.readTimeout = 4000
+                if (connection.responseCode == 200) {
+                    val response = connection.inputStream.bufferedReader().use { it.readText() }
+                    val json = JSONObject(response)
+                    val displayName = json.optString("display_name", "")
+                    if (displayName.isNotBlank()) {
+                        val parts = displayName.split(",")
+                        val name = parts.firstOrNull()?.trim() ?: displayName
+                        withContext(Dispatchers.Main) {
+                            onLocationFetched(name, location.latitude, location.longitude)
+                        }
+                        return@launch
+                    }
                 }
-            } else {
-                @Suppress("DEPRECATION")
-                val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
-                val address = addresses?.firstOrNull()
-                val name = address?.locality ?: address?.featureName ?: "Location (${location.latitude.toString().take(6)}, ${location.longitude.toString().take(6)})"
-                onLocationFetched(name, location.latitude, location.longitude)
+            } catch (_: Exception) {}
+
+            // Fallback to built-in Geocoder if Nominatim fails or offline
+            withContext(Dispatchers.Main) {
+                val geocoder = Geocoder(context, Locale.getDefault())
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        geocoder.getFromLocation(location.latitude, location.longitude, 1) { addresses ->
+                            val address = addresses.firstOrNull()
+                            val name = address?.locality ?: address?.featureName ?: "Location (${location.latitude.toString().take(6)}, ${location.longitude.toString().take(6)})"
+                            onLocationFetched(name, location.latitude, location.longitude)
+                        }
+                    } else {
+                        @Suppress("DEPRECATION")
+                        val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
+                        val address = addresses?.firstOrNull()
+                        val name = address?.locality ?: address?.featureName ?: "Location (${location.latitude.toString().take(6)}, ${location.longitude.toString().take(6)})"
+                        onLocationFetched(name, location.latitude, location.longitude)
+                    }
+                } catch (_: Exception) {
+                    onLocationFetched("Location (${location.latitude.toString().take(6)}, ${location.longitude.toString().take(6)})", location.latitude, location.longitude)
+                }
             }
-        } catch (_: Exception) {
-            onLocationFetched("Location (${location.latitude.toString().take(6)}, ${location.longitude.toString().take(6)})", location.latitude, location.longitude)
         }
     }
 
