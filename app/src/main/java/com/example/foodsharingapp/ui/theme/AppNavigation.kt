@@ -95,6 +95,8 @@ fun AppNav(
         }
         composable<AddingState> {
             AddingPage(
+                cameraOn = cameraOn,
+                mapOn = mapOn,
                 onSaveClick = { photo, description, tags, place ->
                     homeVm.saveFood(photo, description, tags, place)
                     nav.navigate(Menu)
@@ -114,6 +116,8 @@ fun AppNav(
                 initialDescription = args.description,
                 initialTags = initialTags,
                 initialPlace = initialPlace,
+                cameraOn = cameraOn,
+                mapOn = mapOn,
                 onSaveClick = { photo, description, tags, place ->
                     if (existingItem != null) {
                         homeVm.updateFood(existingItem.food, photo, description, tags, place)

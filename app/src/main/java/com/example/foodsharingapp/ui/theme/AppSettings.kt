@@ -166,7 +166,7 @@ private fun ThemeSwatch(
             .clip(shape)
             .background(color)
             .border(
-                width = if (isSelected) 4.dp else 1.dp,   // selection shown by more than colour
+                width = if (isSelected) 4.dp else 1.dp,   // selection shown by more than color
                 color = MaterialTheme.colorScheme.onBackground,
                 shape = shape
             )
