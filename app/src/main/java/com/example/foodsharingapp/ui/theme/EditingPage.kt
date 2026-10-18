@@ -60,7 +60,7 @@ import java.util.Locale
 
 @Preview(showBackground = true)
 @Composable
-fun EdittingPage(
+fun EditingPage(
     initialPhoto: String = "",
     initialDescription: String = "",
     initialTags: List<String> = emptyList(),
