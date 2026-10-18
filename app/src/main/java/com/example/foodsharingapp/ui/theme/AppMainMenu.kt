@@ -113,8 +113,8 @@ fun AppMenu(
 
             FloatingActionButton(
                 onClick = onAddClick,
-                containerColor = Color.Yellow,
-                contentColor = Color.Black,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(24.dp)
