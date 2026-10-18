@@ -186,7 +186,7 @@ private fun SettingToggle(label: String, checked: Boolean, onCheckedChange: (Boo
         if (isGranted) {
             onCheckedChange(true)
         } else {
-            Toast.makeText(context, "Camera permission denied.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Permission denied.", Toast.LENGTH_SHORT).show()
             onCheckedChange(false)
         }
     }
@@ -199,7 +199,7 @@ private fun SettingToggle(label: String, checked: Boolean, onCheckedChange: (Boo
         if (granted) {
             onCheckedChange(true)
         } else {
-            Toast.makeText(context, "Location permission denied.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Permission denied.", Toast.LENGTH_SHORT).show()
             onCheckedChange(false)
         }
     }
@@ -213,40 +213,47 @@ private fun SettingToggle(label: String, checked: Boolean, onCheckedChange: (Boo
                 role = Role.Switch,
                 onValueChange = { newValue ->
                     if (newValue) {
-                        if (label.equals("Camera", ignoreCase = true)) {
-                            val hasCam = ContextCompat.checkSelfPermission(
-                                context,
-                                Manifest.permission.CAMERA
-                            ) == PackageManager.PERMISSION_GRANTED
-                            if (hasCam) {
-                                onCheckedChange(true)
-                            } else {
-                                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-                            }
-                        } else if (label.equals("Map", ignoreCase = true)) {
-                            val hasFine = ContextCompat.checkSelfPermission(
-                                context,
-                                Manifest.permission.ACCESS_FINE_LOCATION
-                            ) == PackageManager.PERMISSION_GRANTED
-                            val hasCoarse = ContextCompat.checkSelfPermission(
-                                context,
-                                Manifest.permission.ACCESS_COARSE_LOCATION
-                            ) == PackageManager.PERMISSION_GRANTED
-                            if (hasFine || hasCoarse) {
-                                onCheckedChange(true)
-                            } else {
-                                locationPermissionLauncher.launch(
-                                    arrayOf(
-                                        Manifest.permission.ACCESS_FINE_LOCATION,
-                                        Manifest.permission.ACCESS_COARSE_LOCATION
+                        // 1B / Step 1: When OFF and turned ON, ask for permissions.
+                        // If denied previously, pressing again pops the OS option again.
+                        if (!checked) {
+                            if (label.equals("Camera", ignoreCase = true)) {
+                                val hasCam = ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.CAMERA
+                                ) == PackageManager.PERMISSION_GRANTED
+                                if (hasCam) {
+                                    onCheckedChange(true)
+                                } else {
+                                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                                }
+                            } else if (label.equals("Map", ignoreCase = true)) {
+                                val hasFine = ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.ACCESS_FINE_LOCATION
+                                ) == PackageManager.PERMISSION_GRANTED
+                                val hasCoarse = ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.ACCESS_COARSE_LOCATION
+                                ) == PackageManager.PERMISSION_GRANTED
+                                if (hasFine || hasCoarse) {
+                                    onCheckedChange(true)
+                                } else {
+                                    locationPermissionLauncher.launch(
+                                        arrayOf(
+                                            Manifest.permission.ACCESS_FINE_LOCATION,
+                                            Manifest.permission.ACCESS_COARSE_LOCATION
+                                        )
                                     )
-                                )
+                                }
+                            } else {
+                                onCheckedChange(true)
                             }
-                        } else {
-                            onCheckedChange(true)
                         }
                     } else {
-                        onCheckedChange(false)
+                        // 1A: If pressed when ON (granted), switch stays on and will not turn to 'Off' or permissions is disabled.
+                        if (checked) {
+                            Toast.makeText(context, "Permission is granted. Switch stays on.", Toast.LENGTH_SHORT).show()
+                        }
                     }
                 }
             )

@@ -362,7 +362,7 @@ fun InfoTable(
                     )
                     if (tags.isNotBlank()) {
                         Text(
-                            text = "@ $tags",
+                            text = tags,
                             fontSize = 16.sp,
                             color = Color.Black
                         )
