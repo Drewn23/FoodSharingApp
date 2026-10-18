@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -43,7 +44,7 @@ fun LoginPage(
             onClick = onClickStart,
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFAEB8A1),
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = Color.Black
             )
         ){
@@ -69,7 +70,7 @@ fun LoginCard(){
             color = Color.White,
             textAlign = TextAlign.Center,
             modifier = Modifier
-                .background(color = Color(0xFF545454))
+                .background(color = MaterialTheme.colorScheme.primaryContainer)
                 .padding(
                     horizontal = 32.dp,
                     vertical = 24.dp
