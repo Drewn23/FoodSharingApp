@@ -35,7 +35,6 @@ data class MyFoodRecord(
     val tag2: String? = null,
     val tag3: String? = null,
     val placeId: Long? = null,          // null = no map added
-    val isFavorite: Boolean = false
 )
 
 // A share record (when you share an entry through link)

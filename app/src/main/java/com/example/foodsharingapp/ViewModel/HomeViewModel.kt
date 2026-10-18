@@ -25,10 +25,6 @@ class HomeViewModel(private val repo: Repository) : ViewModel() {
 
     fun onSearchChange(text: String) { _searchText.value = text }
 
-    fun toggleFavorite(item: FoodWithPlace) = viewModelScope.launch {
-        repo.setFavorite(item.food, !item.food.isFavorite)
-    }
-
     fun delete(item: FoodWithPlace) = viewModelScope.launch { repo.deleteFood(item.food) }
 
     fun saveFood(

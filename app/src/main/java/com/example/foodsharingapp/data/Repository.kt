@@ -80,8 +80,6 @@ class Repository(private val db: DataDb) {
         placeDao.deleteOrphans()
     }
     suspend fun deleteShare(share: ShareRecord) = shareDao.delete(share)
-    suspend fun setFavorite(food: MyFoodRecord, favorite: Boolean) =
-        foodDao.update(food.copy(isFavorite = favorite))
     suspend fun recordShare(foodId: Long, shareAt: Long = System.currentTimeMillis()): Long =
         shareDao.insert(ShareRecord(foodId = foodId, shareAt = shareAt))
 
