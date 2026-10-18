@@ -1,13 +1,17 @@
 package com.example.foodsharingapp.ui.theme
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.DrawerValue
@@ -17,10 +21,13 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.NavigationDrawerItemDefaults
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
@@ -56,7 +63,10 @@ fun AppMenu (
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            ModalDrawerSheet {
+            ModalDrawerSheet(
+                drawerContainerColor = MaterialTheme.colorScheme.background,
+                drawerContentColor = MaterialTheme.colorScheme.onBackground
+            ) {
                 Column(
                     modifier = Modifier.fillMaxHeight()
                 ) {
@@ -77,6 +87,10 @@ fun AppMenu (
                             scope.launch { drawerState.close() }
                             onSettingsClick()
                         },
+                        colors = NavigationDrawerItemDefaults.colors(
+                            unselectedContainerColor = Color.Transparent,
+                            unselectedTextColor = MaterialTheme.colorScheme.onSurface
+                        ),
                         modifier = Modifier.padding(horizontal = 12.dp)
                     )
 
@@ -90,6 +104,10 @@ fun AppMenu (
                             scope.launch { drawerState.close() }
                             onLogoutClick()
                         },
+                        colors = NavigationDrawerItemDefaults.colors(
+                            unselectedContainerColor = Color.Transparent,
+                            unselectedTextColor = MaterialTheme.colorScheme.onSurface
+                        ),
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp)
                     )
                 }
@@ -143,7 +161,7 @@ fun AppMenu (
                             Text(
                                 text = "Try adding something",
                                 textAlign = TextAlign.Center,
-                                color = Color.Gray
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -163,82 +181,59 @@ fun AppMenu (
                                     .filter { it.isNotEmpty() }
                                     .joinToString(" ") { "#$it" }
                                 if (tags.isNotEmpty()) {
-                                    Text(text = tags, color = Color.Gray)
+                                    Text(text = tags, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                                 item.place?.let { place ->
-                                    Text(text = "📍 ${place.name}", color = Color.DarkGray)
+                                    Text(text = "📍 ${place.name}", color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                         }
                     }
                 }
             }
-
         }
     }
 }
 
 @Preview
 @Composable
-fun HeaderLine (
-    onMenuClick: () -> Unit = {}
-){
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(70.dp)
+fun HeaderLine(onMenuClick: () -> Unit = {}) {
+    Surface(
+        color = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        modifier = Modifier.fillMaxWidth()
     ) {
-        // Yellow header line
-        HorizontalDivider(
+        Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.TopCenter),
-            thickness = 50.dp,
-            color = Color.Yellow
-        )
-
-        IconButton(
-            onClick = onMenuClick
+                .statusBarsPadding()           // keeps the icon clear of the clock and battery
+                .heightIn(min = 56.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = Icons.Default.Menu,
-                contentDescription = "Menu",
-                tint = Color.Black
-            )
+            IconButton(onClick = onMenuClick) {
+                Icon(Icons.Default.Menu, contentDescription = "Menu")
+            }
         }
-
     }
 }
 
 @Preview
 @Composable
-fun DrawerLine (
-    onClick: () -> Unit = {}
-){
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(50.dp)
+fun DrawerLine(onClick: () -> Unit = {}) {
+    Surface(
+        color = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        modifier = Modifier.fillMaxWidth()
     ) {
-        // Yellow header line
-        HorizontalDivider(
+        Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.TopCenter),
-            thickness = 50.dp,
-            color = Color.Yellow
-        )
-
-        IconButton(
-            onClick = onClick,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
+                .statusBarsPadding()
+                .heightIn(min = 56.dp),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = Icons.Default.Close,
-                contentDescription = "Close Drawer"
-            )
+            IconButton(onClick = onClick) {
+                Icon(Icons.Default.Close, contentDescription = "Close Drawer")
+            }
         }
-
     }
 }

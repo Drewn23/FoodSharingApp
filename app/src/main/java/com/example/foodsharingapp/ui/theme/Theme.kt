@@ -21,7 +21,10 @@ private val RedColorScheme = lightColorScheme(
     background = RedBackground,
     onBackground = RedOnBackground,
     surface = RedBackground,
-    onSurface = RedOnBackground
+    onSurface = RedOnBackground,
+    surfaceVariant = RedContainer,
+    onSurfaceVariant = RedSecondary,
+    outline = RedSecondary
 )
 
 private val PeachColorScheme = lightColorScheme(
@@ -33,7 +36,10 @@ private val PeachColorScheme = lightColorScheme(
     background = PeachBackground,
     onBackground = PeachOnBackground,
     surface = PeachBackground,
-    onSurface = PeachOnBackground
+    onSurface = PeachOnBackground,
+    surfaceVariant = PeachContainer,
+    onSurfaceVariant = PeachSecondary,
+    outline = PeachSecondary
 )
 
 private val BlueColorScheme = lightColorScheme(
@@ -45,7 +51,10 @@ private val BlueColorScheme = lightColorScheme(
     background = BlueBackground,
     onBackground = BlueOnBackground,
     surface = BlueBackground,
-    onSurface = BlueOnBackground
+    onSurface = BlueOnBackground,
+    surfaceVariant = BlueContainer,
+    onSurfaceVariant = BlueSecondary,
+    outline = BlueSecondary
 )
 
 @Composable
