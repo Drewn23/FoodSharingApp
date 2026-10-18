@@ -19,6 +19,7 @@ Friends and family who receive shared meal records.
 - Share personal food experience easily with friends and family.
 
 ### 3) Data
+Used GitHub to commit and push our works.
 The app stores three Room tables and a small set of preferences in Settings.
 
 | Data | Fields | Notes |
