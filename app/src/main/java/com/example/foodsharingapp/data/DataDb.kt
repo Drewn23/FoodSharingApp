@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 
 @Database(
     entities = [Place::class, MyFoodRecord::class, ShareRecord::class],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class DataDb : RoomDatabase() {
@@ -24,7 +24,7 @@ abstract class DataDb : RoomDatabase() {
                     context.applicationContext,
                     DataDb::class.java,
                     "data.db"
-                ).build().also { instance = it }
+                ).fallbackToDestructiveMigration(true).build().also { instance = it }
             }
     }
 }

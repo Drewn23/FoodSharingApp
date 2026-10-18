@@ -80,7 +80,7 @@ fun AppSetting(
     onCameraToggle: (Boolean) -> Unit,
     onMapToggle: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
-    version: String = "Version 1.0.0"
+    version: String = "Version 2.0.0"
 ) {
     Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         SettingHeader(onBack)
@@ -213,8 +213,6 @@ private fun SettingToggle(label: String, checked: Boolean, onCheckedChange: (Boo
                 role = Role.Switch,
                 onValueChange = { newValue ->
                     if (newValue) {
-                        // 1B / Step 1: When OFF and turned ON, ask for permissions.
-                        // If denied previously, pressing again pops the OS option again.
                         if (!checked) {
                             if (label.equals("Camera", ignoreCase = true)) {
                                 val hasCam = ContextCompat.checkSelfPermission(
@@ -250,7 +248,6 @@ private fun SettingToggle(label: String, checked: Boolean, onCheckedChange: (Boo
                             }
                         }
                     } else {
-                        // 1A: If pressed when ON (granted), switch stays on and will not turn to 'Off' or permissions is disabled.
                         if (checked) {
                             Toast.makeText(context, "Permission is granted. Switch stays on.", Toast.LENGTH_SHORT).show()
                         }
